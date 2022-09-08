@@ -61,13 +61,11 @@ def anagram_position(word):
 
     base = len(letters)
 
-
     for i, pp in enumerate(sorted(set(permutations(word)))):
         xx = "".join(ADIGITS[letters.index(x)] for x in pp)
         yy = int(xx, base=base)
         ppp = "".join(pp)
         print(f"{i=}, {xx=}, {yy=}, {ppp=}")
-
 
     print(f"{word=}, {counters=}, {base=}, {total=}, {sequence_len=}")
 
@@ -76,8 +74,8 @@ def anagram_position(word):
     remaining = total
     for pos, letter in enumerate(word):
 
-        remaining_word = word[pos+1:]
-        remaining = factorial(N-pos-1)
+        remaining_word = word[pos + 1 :]
+        remaining = factorial(N - pos - 1)
         for rl in set(remaining_word):
             remaining //= factorial(remaining_word.count(rl))
 
@@ -86,7 +84,9 @@ def anagram_position(word):
 
         result += starts * remaining
         steps.append(starts)
-        print(f"{letter=}, {remaining_digits=}, {starts=}, {remaining_word=}, {remaining=}, {result=}, {steps=}")
+        print(
+            f"{letter=}, {remaining_digits=}, {starts=}, {remaining_word=}, {remaining=}, {result=}, {steps=}"
+        )
 
     result += remaining
 
