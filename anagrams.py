@@ -2,7 +2,7 @@ from math import factorial
 from itertools import permutations
 
 
-def listPosition(word):
+def anagram_position(word):
     """Return the anagram list position of the word"""
     N = len(word)
     letters = list(sorted(set(word)))
@@ -26,13 +26,8 @@ def listPosition(word):
     return K
 
 
-# import codewars_test as test
-# from solution import listPosition
-
-@test.describe('Anagram')
-def sample_tests():
-    @test.it('Must return appropriate values for known inputs')
-    def _():
-        testValues = {'A' : 1, 'ABAB' : 2, 'AAAB' : 1, 'BAAA' : 4, "BBTA": 10, 'QUESTION' : 24572, 'BOOKKEEPER' : 10743}
-        for word in testValues:
-            test.assert_equals(listPosition(word), testValues[word], 'Incorrect list position for: ' + word)
+def test_anagram():
+    test_values = {'A' : 1, 'ABAB' : 2, 'AAAB' : 1, 'BAAA' : 4, "BBTA": 10, 'QUESTION' : 24572, 'BOOKKEEPER' : 10743}
+    for word, expected in test_values.items():
+        actual = anagram_position(word)
+        assert actual == expected, f"For input {word}, expecting {expected}, got {actual} instead."
