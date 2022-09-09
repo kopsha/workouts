@@ -14,9 +14,6 @@ def count_permutations(of: str):
 
 def lexicographical_index(word):
     rank, length, freqs = 0, len(word), Counter(word)
-    min_ord = min([ord(key) for key in freqs.keys()])
-
-    print(f"{word}, {freqs=}")
     for i, letter in enumerate(word):
         fsum = sum(freqs[c] for c in set(word) if c < letter)
         fprod = reduce(lambda x, y: y * x, (factorial(v) for v in freqs.values()))
