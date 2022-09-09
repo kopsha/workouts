@@ -18,7 +18,7 @@ def lexicographical_index(word):
 
     print(f"{word}, {freqs=}")
     for i, letter in enumerate(word):
-        fsum = sum(freqs[c] for c in (c for c in set(word) if c < letter))
+        fsum = sum(freqs[c] for c in set(word) if c < letter)
         fprod = reduce(lambda x, y: y * x, (factorial(v) for v in freqs.values()))
         freqs[letter] -= 1
         rank += (fsum * factorial(length - i - 1)) // fprod
