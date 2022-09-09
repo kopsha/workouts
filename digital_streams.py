@@ -1,4 +1,3 @@
-
 def make_digital_stream(length):
 
     count = 0
@@ -19,7 +18,7 @@ def find_position(word):
         return ord(word) - ord("0")
 
     print(f"Got {word=}")
-    deltas = [ord(right)-ord(left) for left, right in zip(word[:-1], word[1:])]
+    deltas = [ord(right) - ord(left) for left, right in zip(word[:-1], word[1:])]
     print(f"{deltas=}")
 
     return 0
@@ -33,7 +32,7 @@ def test_stream_gen():
         prev = None
         for j, c in enumerate(stream):
             if c == "9":
-                print(j, j-prev if prev else "")
+                print(j, j - prev if prev else "")
                 prev = j
     assert False
 
