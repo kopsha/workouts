@@ -1,5 +1,4 @@
 from math import factorial
-from collections import deque
 from functools import reduce
 from collections import Counter
 
