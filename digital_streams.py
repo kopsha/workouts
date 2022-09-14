@@ -1,48 +1,59 @@
-def make_digital_stream(length):
+def make_digital_stream(start, length):
+    count = start
+    parts = str()
 
-    count = 0
-    parts = list()
-
-    while count < length:
+    while len(parts) < length:
+        parts += str(count)
         count += 1
-        parts.append(str(count))
 
-    return "".join(parts)
+    return parts[:length]
 
 
-def find_position(word):
-    length = len(word)
+def first_position(of: str):
+    n = int(of)
+
+    pos = 0
+    if len(of) <= 1:
+        pos = n - 1
+    elif len(of) <= 2:
+        pos = 9 + (n - 10) * 2
+    elif len(of) <= 3:
+        pos += (n - 100) * 3
+
+    print(f"{of=}, {pos=}")
+    return pos
+
+
+def find_position(number_stream):
+    print(f"{number_stream=}, {len(number_stream)=}")
+    length = len(number_stream)
     if length < 1:
         return 0
     elif length == 1:
-        return ord(word) - ord("0")
+        return first_position(number_stream)
 
-    print(f"Got {word=}")
-    deltas = [ord(right) - ord(left) for left, right in zip(word[:-1], word[1:])]
-    print(f"{deltas=}")
+    # find partial consecutives
+    for digits in range(1, length + 1):
+        start = int(number_stream[:digits])
+        lucky = make_digital_stream(start, length)
+        print(digits, start, lucky)
+        if lucky == number_stream:
+            return first_position(str(number_stream[:digits]))
 
     return 0
 
 
-def test_stream_gen():
-    for i in (25, 1000):
-        stream = make_digital_stream(i)
-        print(f"{i=}, {stream=}")
-
-        prev = None
-        for j, c in enumerate(stream):
-            if c == "9":
-                print(j, j - prev if prev else "")
-                prev = j
-    assert False
-
-
-def dont_test_streams():
+def test_streams():
     test_values = {
+        "1": 0,
+        "2": 1,
+        "9": 8,
+        "91": 8,
+        "10": 9,
+        "910": 8,
         "456": 3,
         "454": 79,
         "455": 98,
-        "910": 8,
         "9100": 188,
         "99100": 187,
         "00101": 190,
@@ -51,7 +62,6 @@ def dont_test_streams():
         "123456789": 0,
         "1234567891": 0,
         "123456798": 1000000071,
-        "10": 9,
         "53635": 13034,
         "040": 1091,
         "11": 11,
@@ -74,3 +84,4 @@ def dont_test_streams():
         assert (
             actual == expected
         ), f"For input {word}, expecting {expected}, got {actual} instead."
+        print(word, expected, "passed")
