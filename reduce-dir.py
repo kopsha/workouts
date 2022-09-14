@@ -1,59 +1,21 @@
-def reduce_direction_nah(arr):
-    """This actually works better, but the testcases..."""
-    steps = [cmd.lower() for cmd in arr]
-    deltas = dict(
-        east=(-1, 0),
-        west=(+1, 0),
-        north=(0, -1),
-        south=(0, +1),
-    )
 
-    x, y = 0, 0
-    for step in steps:
-        dx, dy = deltas[step]
-        x, y = x + dx, y + dy
-        print("\t", x, y)
-
-    result = list()
-
-    result.extend(["EAST"] * x if x < 0 else ["WEST"] * x)
-    result.extend(["NORTH"] * y if y < 0 else ["SOUTH"] * y)
-
-    return result
-
-
-def remove_opposites(steps):
+def reduce_direction(steps):
     opposites = {
         ("EAST", "WEST"),
         ("WEST", "EAST"),
         ("NORTH", "SOUTH"),
         ("SOUTH", "NORTH"),
     }
-    result = list()
-    touched = False
+    reduced_steps = list()
 
-    i, j = 0, 1
-    while j < len(steps):
-        pair = (steps[i], steps[j])
+    for step in steps:
+        pair = reduced_steps[-1] if reduced_steps else None, step
         if pair in opposites:
-            i, j = i + 2, j + 2
-            touched = True
+            reduced_steps.pop()
         else:
-            result.append(steps[i])
-            i, j = i + 1, j + 1
+            reduced_steps.append(step)
 
-    if i < len(steps):
-        result.append(steps[i])
-
-    return result, touched
-
-
-def reduce_direction(arr):
-    steps, try_again = remove_opposites(arr)
-    while try_again:
-        steps, try_again = remove_opposites(steps)
-
-    return steps
+    return reduced_steps
 
 
 def test_reduce_direction():
