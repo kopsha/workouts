@@ -1,26 +1,36 @@
-def make_digital_stream(start, length):
+def make_stream_options(start, length, offset):
     count = start
     parts = str()
 
-    while len(parts) < length:
+    while len(parts) < (length + offset):
         parts += str(count)
         count += 1
 
-    return parts[:length]
+    delta_offi = len(parts) - length + 1
+    options = [(str(parts[offi:offi+length]), offi) for offi in range(delta_offi)]
+    return options
 
 
-def first_position(of: str):
-    n = int(of)
+def index_of(number: int):
+    if number < 10:
+        return number-1
 
+    digits = str(number)
+
+    # count space for all numbers with less than size digits
     pos = 0
-    if len(of) <= 1:
-        pos = n - 1
-    elif len(of) <= 2:
-        pos = 9 + (n - 10) * 2
-    elif len(of) <= 3:
-        pos += (n - 100) * 3
+    for i in range(len(digits) - 1):
+        multi = 9 * 10 ** i
+        this = (i + 1) * multi
+        pos += this
+        print(f"\t {i=}, {multi=}, {this=}")
 
-    print(f"{of=}, {pos=}")
+    i += 1
+    multi = number - 10 ** i
+    this = (i + 1) * multi
+    pos += this
+
+    # count space for numbers with size digits
     return pos
 
 
@@ -29,30 +39,42 @@ def find_position(number_stream):
     length = len(number_stream)
     if length < 1:
         return 0
-    elif length == 1:
-        return first_position(number_stream)
 
     # find partial consecutives
-    for digits in range(1, length + 1):
-        start = int(number_stream[:digits])
-        lucky = make_digital_stream(start, length)
-        print(digits, start, lucky)
-        if lucky == number_stream:
-            return first_position(str(number_stream[:digits]))
+    for window in range(1, length + 1):
+        for offset in range(window):
+            partial = number_stream[offset:offset+window]
+            start = int(partial)
+
+            if partial.startswith("0"):
+                start += 10 ** len(partial)
+
+            lucky = make_stream_options(start, length, offset)
+            print(f"{window=} {offset=}, {partial=}, {start=}, {lucky=}")
+            for lucky_stream, offi in lucky:
+                if number_stream == lucky_stream:
+                    return index_of(start) + offi
+
+            start -= 1
+            lucky = make_stream_options(start, length, offset)
+            print(f"{window=} {offset=}, {partial=}, {start=}, {lucky=}")
+            for lucky_stream, offi in lucky:
+                if number_stream == lucky_stream:
+                    return index_of(start) + offi
 
     return 0
 
 
 def test_streams():
     test_values = {
+        "456": 3,
+        "454": 79,
         "1": 0,
         "2": 1,
         "9": 8,
         "91": 8,
         "10": 9,
         "910": 8,
-        "456": 3,
-        "454": 79,
         "455": 98,
         "9100": 188,
         "99100": 187,
