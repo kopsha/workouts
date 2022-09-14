@@ -45,26 +45,26 @@ def won_tic_tac_toe(grid, player):
 
 def test_horizontal():
     my_grid = [
-        ['x', 'x', 'x'],
-        ['o', 'x', 'o'],
-        ['_', 'o', '_'],
+        ["x", "x", "x"],
+        ["o", "x", "o"],
+        ["_", "o", "_"],
     ]
-    assert won_tic_tac_toe(my_grid, 'x') == True
+    assert won_tic_tac_toe(my_grid, "x") == True
 
 
 def test_vertical():
     my_grid = [
-        ['x', 'o', 'x'],
-        ['x', 'o', 'o'],
-        ['_', 'o', '_'],
+        ["x", "o", "x"],
+        ["x", "o", "o"],
+        ["_", "o", "_"],
     ]
-    assert won_tic_tac_toe(my_grid, 'o') == True
+    assert won_tic_tac_toe(my_grid, "o") == True
 
 
 def test_diagonal():
     my_grid = [
-        ['x', 'o', '_'],
-        ['o', 'x', '_'],
-        ['_', 'o', 'x'],
+        ["x", "o", "_"],
+        ["o", "x", "_"],
+        ["_", "o", "x"],
     ]
-    assert won_tic_tac_toe(my_grid, 'x') == True
+    assert won_tic_tac_toe(my_grid, "x") == True
