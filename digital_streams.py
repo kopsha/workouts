@@ -7,23 +7,21 @@ def search_in_stream(sequence):
         stream += str(x)
         x += 1
 
-    print(f"{sequence=} at pos {stream.index(sequence)}, {x=}, {len(stream)=}, {stream[-3*len(sequence):]}")
-
     return stream.index(sequence)
 
 
-def make_stream_options(start, length, offset):
-    count = start if start > 0 else 1
-    parts = str()
+def generate_stream_options(start_options, number_stream):
+    options = list()
+    length = len(number_stream)
+    for start in start_options:
+        count = start
+        parts = str()
+        while len(parts) <= (length * 3):
+            parts += str(count)
+            count += 1
 
-    while len(parts) <= (length * 3):
-        parts += str(count)
-        count += 1
-
-    delta_offi = len(parts) - length + 1
-    options = [(str(parts[offi:offi+length]), offi) for offi in range(delta_offi)]
-
-    print(f">> {start=}, {length=}, {parts=}")
+        if number_stream in parts:
+            options.append((start, parts.find(number_stream)))
 
     return options
 
@@ -40,7 +38,6 @@ def index_of(number: int):
         multi = 9 * 10 ** i
         this = (i + 1) * multi
         pos += this
-        # print(f"\t {i=}, {multi=}, {this=}")
 
     i += 1
     multi = number - 10 ** i
@@ -53,7 +50,6 @@ def index_of(number: int):
 
 def find_position(number_stream):
     """find partial consecutives"""
-    print(f"  ---  {number_stream=}  ---  [{len(number_stream)}]")
     length = len(number_stream)
     if length < 1:
         return 0
@@ -62,80 +58,33 @@ def find_position(number_stream):
     for window in range(1, length + 1):
         for offset in range(length):
             partial = str(number_stream[offset:offset+window])
-
-            # let's pick missing parts
             missing = window + offset - length
+            start_options = set()
+
             if missing > 0:
                 missing_part = str(number_stream[offset - missing:offset])
                 if missing_part.endswith("9"):
-                    partial = str(int(partial) - 1)
+                    alt_partial = str(int(partial + "0"*missing) - 1)
+                    start_options.add(int(alt_partial))
 
-                print(f"{partial=}, {missing_part=}")
                 partial += missing_part
 
             start = int(partial)
+            start_options.add(int(partial))
+            start_options.add(start - 1)
+            start_options.add(start)
+
             if partial.startswith("0"):
+                start_options.add(10 ** len(partial))
                 start += 10 ** len(partial)
-            if offset:
-                start -= 1
 
-            lucky = make_stream_options(start, length, offset)
-            print(f"{window=} {offset=}, {partial=}, {start=}, {lucky=}")
-            for lucky_stream, offi in lucky:
-                if number_stream == lucky_stream:
-                    solutions.append(index_of(start) + offi)
+            start_options = {max(x, 1) for x in start_options}
 
-    print(solutions)
+            luckies = generate_stream_options(start_options, number_stream)
+            for lucky_start, offi in luckies:
+                solutions.append(index_of(lucky_start) + offi)
+
     return min(solutions)
-
-
-def _test_first():
-    test_values = {
-        "456": 3,
-        "454": 79,
-        "1": 0,
-        "2": 1,
-        "9": 8,
-        "91": 8,
-        "92": 28,
-        "10": 9,
-        "910": 8,
-        "455": 98,
-        "9100": 188,
-        "99100": 187,
-        "00101": 190,
-        "001": 190,
-        "00": 190,
-        "123456789": 0,
-        "1234567891": 0,
-        "53635": 13034,
-        "040": 1091,
-        "11": 11,
-        "99": 168,
-        # "667": 122,
-        # "0404": 15050,
-        # "01": 10,
-        # "091": 170,
-        # "0910": 2927,
-        # "0991": 2617,
-        # "09910": 2617,
-        # "09991": 35286,
-        # "123456798": 1000000071,
-        # "949225100": 382689688,
-        # "58257860625": 24674951477,
-        # "3999589058124": 6957586376885,
-        # "555899959741198": 1686722738828503,
-    }
-    for word, expected in sorted(test_values.items(), key=lambda x: x[1]):
-        actual = search_in_stream(word)
-        assert (
-            actual == expected
-        ), f"For input {word}, expecting {expected}, got {actual} instead."
-        print(word, expected, "passed")
-
-
-    assert False
-
 
 
 def test_streams():
@@ -155,25 +104,25 @@ def test_streams():
         "00101": 190,
         "001": 190,
         "00": 190,
-        # "123456789": 0,
-        # "1234567891": 0,
-        # "123456798": 1000000071,
-        # "53635": 13034,
+        "123456789": 0,
+        "1234567891": 0,
+        "123456798": 1000000071,
+        "53635": 13034,
         "040": 1091,
         "11": 11,
         "99": 168,
         "667": 122,
-        # "0404": 15050,
-        # "949225100": 382689688,
-        # "58257860625": 24674951477,
-        # "3999589058124": 6957586376885,
-        # "555899959741198": 1686722738828503,
+        "0404": 15050,
+        "949225100": 382689688,
+        "58257860625": 24674951477,
+        "3999589058124": 6957586376885,
+        "555899959741198": 1686722738828503,
         "01": 10,
         "091": 170,
-        # "0910": 2927,
-        # "0991": 2617,
-        # "09910": 2617,
-        # "09991": 35286,
+        "0910": 2927,
+        "0991": 2617,
+        "09910": 2617,
+        "09991": 35286,
     }
     for word, expected in test_values.items():
         actual = find_position(word)
