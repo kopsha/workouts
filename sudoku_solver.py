@@ -1,6 +1,4 @@
 from itertools import permutations, chain
-from copy import deepcopy
-from collections import deque
 
 
 SPACE = list(range(10))
@@ -94,6 +92,7 @@ def sudoku(puzzle):
                     possible_moves.append((pos, options))
 
     possible_moves.sort(key=lambda pair: len(pair[1]))
+
     for (row, col), options in possible_moves:
         for opt in options:
             puzzle[row][col] = opt
@@ -103,6 +102,13 @@ def sudoku(puzzle):
             puzzle[row][col] = 0
 
     return None
+
+def solve(puzzle):
+    """hopefully a faster version"""
+
+
+
+    return sudoku(puzzle)
 
 
 def _test_debug():
@@ -119,7 +125,7 @@ def _test_debug():
     ]
 
     print("working...")
-    actual = sudoku_solver(puzzle)
+    actual = sudoku(puzzle)
 
     sudo_print(actual)
 
@@ -152,4 +158,33 @@ def test_basic_solver():
     ]
 
     actual = sudoku(puzzle)
+    assert actual == expected
+
+def test_optimized_solver():
+    puzzle = [
+        [9, 0, 0, 0, 8, 0, 0, 0, 1],
+        [0, 0, 0, 4, 0, 6, 0, 0, 0],
+        [0, 0, 5, 0, 7, 0, 3, 0, 0],
+        [0, 6, 0, 0, 0, 0, 0, 4, 0],
+        [4, 0, 1, 0, 6, 0, 5, 0, 8],
+        [0, 9, 0, 0, 0, 0, 0, 2, 0],
+        [0, 0, 7, 0, 3, 0, 2, 0, 0],
+        [0, 0, 0, 7, 0, 5, 0, 0, 0],
+        [1, 0, 0, 0, 4, 0, 0, 0, 7],
+    ]
+
+    expected = [
+        [9, 2, 6, 5, 8, 3, 4, 7, 1],
+        [7, 1, 3, 4, 2, 6, 9, 8, 5],
+        [8, 4, 5, 9, 7, 1, 3, 6, 2],
+        [3, 6, 2, 8, 5, 7, 1, 4, 9],
+        [4, 7, 1, 2, 6, 9, 5, 3, 8],
+        [5, 9, 8, 3, 1, 4, 7, 2, 6],
+        [6, 5, 7, 1, 3, 8, 2, 9, 4],
+        [2, 8, 4, 7, 9, 5, 6, 1, 3],
+        [1, 3, 9, 6, 4, 2, 8, 5, 7],
+    ]
+
+    actual = solve(puzzle)
+    sudo_print(actual)
     assert actual == expected
