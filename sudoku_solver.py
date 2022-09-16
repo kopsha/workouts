@@ -17,6 +17,10 @@ CELLS = (
 )
 
 
+def is_solved(puzzle):
+    return 0 not in set(chain.from_iterable(puzzle))
+
+
 def sudo_print(puzzle, title=""):
     print(f"    {title}")
     for i, row in enumerate(puzzle):
@@ -24,9 +28,12 @@ def sudo_print(puzzle, title=""):
             print("+---" * 3 + "+")
         augmented = [
             "|" * int(j % 3 == 0) + (str(x) if x else " ") for j, x in enumerate(row)
-        ] + ["|",]
+        ] + [
+            "|",
+        ]
         print("".join(augmented))
     print("+---" * 3 + "+")
+    print("    ", "solved" * is_solved(puzzle))
 
 
 def sudoku_permutations(cell):
@@ -72,8 +79,10 @@ def valid_moves_of(pos, puzzle):
     return options
 
 
-def sudoku_generator(puzzle):
-    """return the solved puzzle as a 2d array of 9 x 9"""
+def sudoku(puzzle):
+    """recursive version"""
+    if is_solved(puzzle):
+        return puzzle
 
     possible_moves = list()
     for i, row in enumerate(puzzle):
@@ -88,49 +97,15 @@ def sudoku_generator(puzzle):
     for (row, col), options in possible_moves:
         for opt in options:
             puzzle[row][col] = opt
-            yield puzzle
+            solution = sudoku(puzzle)
+            if solution:
+                return solution
             puzzle[row][col] = 0
 
-
-def is_solved(puzzle):
-    return 0 not in set(chain.from_iterable(puzzle))
+    return None
 
 
-def canonical(puzzle):
-    return "".join(str(x) for x in chain.from_iterable(puzzle))
-
-
-def sudoku(puzzle):
-
-    step = 0
-    work_puzzle = deepcopy(puzzle)
-    queue = deque([work_puzzle])
-    trail = set([canonical(work_puzzle)])
-
-    sudo_print(work_puzzle, title=f"{step=}")
-
-    while not is_solved(work_puzzle):
-        for m in sudoku_generator(work_puzzle):
-            step += 1
-            # print(f"--- {step=}")
-            # pprint(m)
-            # print(f"{trail=}")
-
-            if step > 10:
-                return work_puzzle
-            if step % 1000 == 0:
-                print(".", end="", flush=True)
-
-            c = canonical(m)
-            if c not in trail:
-                trail.add(c)
-                queue.appendleft(deepcopy(m))
-        work_puzzle = queue.pop()
-
-    return work_puzzle
-
-
-def test_debug():
+def _test_debug():
     puzzle = [
         [5, 3, 0, 0, 7, 0, 0, 0, 0],
         [6, 0, 0, 1, 9, 5, 0, 0, 0],
@@ -144,12 +119,14 @@ def test_debug():
     ]
 
     print("working...")
-    actual = sudoku(puzzle)
+    actual = sudoku_solver(puzzle)
+
+    sudo_print(actual)
 
     assert False
 
 
-def _test_basic_solver():
+def test_basic_solver():
     puzzle = [
         [5, 3, 0, 0, 7, 0, 0, 0, 0],
         [6, 0, 0, 1, 9, 5, 0, 0, 0],
@@ -175,5 +152,4 @@ def _test_basic_solver():
     ]
 
     actual = sudoku(puzzle)
-    pprint(actual)
     assert actual == expected
