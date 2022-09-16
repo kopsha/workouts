@@ -1,7 +1,6 @@
 from itertools import permutations, chain
 from copy import deepcopy
 from collections import deque
-from pprint import pprint
 
 
 SPACE = list(range(10))
@@ -16,6 +15,18 @@ CELLS = (
     (2, 1),
     (2, 2),
 )
+
+
+def sudo_print(puzzle, title=""):
+    print(f"    {title}")
+    for i, row in enumerate(puzzle):
+        if i % 3 == 0:
+            print("+---" * 3 + "+")
+        augmented = [
+            "|" * int(j % 3 == 0) + (str(x) if x else " ") for j, x in enumerate(row)
+        ] + ["|",]
+        print("".join(augmented))
+    print("+---" * 3 + "+")
 
 
 def sudoku_permutations(cell):
@@ -36,7 +47,7 @@ def sudoku_permutations(cell):
         yield next_pos
 
 
-def valid_options(puzzle, pos):
+def valid_moves_of(pos, puzzle):
     """Given a grid and a position, compute all valid options"""
     row, col = pos
     if puzzle[row][col]:
@@ -69,18 +80,16 @@ def sudoku_generator(puzzle):
         for j, value in enumerate(row):
             pos = i, j
             if value == 0:
-                options = valid_options(puzzle, pos)
+                options = valid_moves_of(pos, puzzle)
                 if options:
                     possible_moves.append((pos, options))
 
     possible_moves.sort(key=lambda pair: len(pair[1]))
-    next_puzzle = deepcopy(puzzle)
     for (row, col), options in possible_moves:
         for opt in options:
-            next_puzzle[row][col] = opt
-            # print("added", opt, "at", (row,col))
-            yield next_puzzle
-            next_puzzle[row][col] = 0
+            puzzle[row][col] = opt
+            yield puzzle
+            puzzle[row][col] = 0
 
 
 def is_solved(puzzle):
@@ -98,8 +107,7 @@ def sudoku(puzzle):
     queue = deque([work_puzzle])
     trail = set([canonical(work_puzzle)])
 
-    print(f"--- {step=}")
-    pprint(work_puzzle)
+    sudo_print(work_puzzle, title=f"{step=}")
 
     while not is_solved(work_puzzle):
         for m in sudoku_generator(work_puzzle):
@@ -108,8 +116,8 @@ def sudoku(puzzle):
             # pprint(m)
             # print(f"{trail=}")
 
-            # if step > 100:
-            #     return
+            if step > 10:
+                return work_puzzle
             if step % 1000 == 0:
                 print(".", end="", flush=True)
 
@@ -122,7 +130,7 @@ def sudoku(puzzle):
     return work_puzzle
 
 
-def _test_debug():
+def test_debug():
     puzzle = [
         [5, 3, 0, 0, 7, 0, 0, 0, 0],
         [6, 0, 0, 1, 9, 5, 0, 0, 0],
@@ -135,14 +143,13 @@ def _test_debug():
         [0, 0, 0, 0, 8, 0, 0, 7, 9],
     ]
 
+    print("working...")
     actual = sudoku(puzzle)
-    pprint(actual)
 
     assert False
 
 
-
-def test_basic_solver():
+def _test_basic_solver():
     puzzle = [
         [5, 3, 0, 0, 7, 0, 0, 0, 0],
         [6, 0, 0, 1, 9, 5, 0, 0, 0],
