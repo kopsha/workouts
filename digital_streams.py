@@ -1,16 +1,8 @@
-
-def search_in_stream(sequence):
-    x = 1
-    stream = str()
-
-    while sequence not in stream[-2*len(sequence):]:
-        stream += str(x)
-        x += 1
-
-    return stream.index(sequence)
-
-
 def generate_stream_options(start_options, number_stream):
+    """
+    Attempts each start value and returns only the ones that matches the desired
+    stream and its offset
+    """
     options = list()
     length = len(number_stream)
     for start in start_options:
@@ -26,11 +18,12 @@ def generate_stream_options(start_options, number_stream):
     return options
 
 
-def index_of(number: int):
-    if number < 10:
-        return number-1
+def index_of(start: int):
+    """finds the index of any given start value"""
+    if start < 10:
+        return start - 1
 
-    digits = str(number)
+    digits = str(start)
 
     # count space for all numbers with less than size digits
     pos = 0
@@ -40,7 +33,7 @@ def index_of(number: int):
         pos += this
 
     i += 1
-    multi = number - 10 ** i
+    multi = start - 10 ** i
     this = (i + 1) * multi
     pos += this
 
@@ -49,22 +42,22 @@ def index_of(number: int):
 
 
 def find_position(number_stream):
-    """find partial consecutives"""
-    length = len(number_stream)
-    if length < 1:
-        return 0
-
+    """
+    Trying all consecutive parts, starting with the lowest number of digits
+    """
     solutions = list()
+    length = len(number_stream)
+
     for window in range(1, length + 1):
         for offset in range(length):
-            partial = str(number_stream[offset:offset+window])
+            partial = str(number_stream[offset : offset + window])
             missing = window + offset - length
             start_options = set()
 
             if missing > 0:
-                missing_part = str(number_stream[offset - missing:offset])
+                missing_part = str(number_stream[offset - missing : offset])
                 if missing_part.endswith("9"):
-                    alt_partial = str(int(partial + "0"*missing) - 1)
+                    alt_partial = str(int(partial + "0" * missing) - 1)
                     start_options.add(int(alt_partial))
 
                 partial += missing_part

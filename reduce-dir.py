@@ -1,4 +1,3 @@
-
 def reduce_direction(steps):
     opposites = {
         ("EAST", "WEST"),
