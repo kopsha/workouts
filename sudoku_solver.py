@@ -118,27 +118,29 @@ def generate_sudoku_positions(puzzle):
                 if options:
                     possible_moves.append((pos, options))
 
-    possible_moves = sorted(possible_moves, key=lambda pair: len(pair[1]))[:3]
+    possible_moves.sort(key=lambda pair: len(pair[1]))
 
     for (row, col), options in possible_moves:
         for opt in options:
             puzzle[row][col] = opt
-            yield deepcopy(puzzle)
+            print("\t", opt, "@", (row, col))
+            yield puzzle
             puzzle[row][col] = 0
 
 
 def solve(puzzle):
     """hopefully a faster version"""
-    sudo_print(puzzle, "given")
     queue = deque([puzzle])
     cnt = 0
     while not is_solved(puzzle):
+        sudo_print(puzzle, f"{cnt} {len(queue)=}")
         cnt += 1
-        if cnt % 100000 == 0:
-            sudo_print(puzzle, f"{cnt} {len(queue)=}")
+        if cnt > 10:
+            print("abort")
+            return None
 
         for new_puzzle in generate_sudoku_positions(puzzle):
-            queue.appendleft(new_puzzle)
+            queue.append(deepcopy(new_puzzle))
         puzzle = queue.pop()
 
     sudo_print(puzzle, "solution")
@@ -166,7 +168,7 @@ def _test_debug():
     assert False
 
 
-def test_recursive_solver():
+def _test_recursive_solver():
     puzzle = [
         [5, 3, 0, 0, 7, 0, 0, 0, 0],
         [6, 0, 0, 1, 9, 5, 0, 0, 0],
@@ -224,7 +226,7 @@ def test_basic_solver():
     assert actual == expected
 
 
-def test_optimized_solver():
+def _test_optimized_solver():
     puzzle = [
         [9, 0, 0, 0, 8, 0, 0, 0, 1],
         [0, 0, 0, 4, 0, 6, 0, 0, 0],
