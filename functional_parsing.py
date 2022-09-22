@@ -1,3 +1,6 @@
+from collections import deque
+
+
 class RegExp:
     def __init__(self, *args):
         self.args = args
@@ -9,7 +12,6 @@ class RegExp:
     def __eq__(self, other):
         return type(self) is type(other) and self.args == other.args
 
-
 class Any(RegExp):
     pass
 
@@ -17,10 +19,8 @@ class Any(RegExp):
 class Normal(RegExp):
     pass
 
-
 class Or(RegExp):
     pass
-
 
 class Str(RegExp):
     pass
@@ -29,10 +29,32 @@ class Str(RegExp):
 class ZeroOrMore(RegExp):
     pass
 
+OPERATORS = {"|"}
+def parse_regexp(expression):
 
-def parse_regexp(indata):
-    print("-", indata, type(indata))
-    return Any()
+    stack = list()
+    output = ''
+
+    for character in expression:
+
+        if character not in OPERATORS:
+            output += character
+        elif character == '(':
+            stack.append('(')
+        elif character==')':
+            while stack and stack[-1] != '(':
+                output += stack.pop()
+            stack.pop()
+        else:
+            while stack and stack[-1] != '(':
+                output += stack.pop()
+            stack.append(character)
+
+    while stack:
+        output+=stack.pop()
+
+    print(f"{expression=} -> {output=}")
+    return output
 
 
 def check(indata, expected):
@@ -42,6 +64,14 @@ def check(indata, expected):
     ), f"Given {indata!r} expecting {expected!r} but got {actual!r} instead."
 
 
+def test_debug():
+    print("...")
+    check("(a|b)*", ZeroOrMore(Or(Normal("a"), Normal("b"))))
+    check("a|b", Or(Normal("a"), Normal("b")))
+    check("a", Normal("a"))
+
+
+"""
 def test_basic_expressions():
     check(".", Any())
     check("a", Normal("a"))
@@ -100,3 +130,4 @@ def test_complex_examples():
             Normal("a"),
         ),
     )
+"""
