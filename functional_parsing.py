@@ -12,6 +12,7 @@ class RegExp:
     def __eq__(self, other):
         return type(self) is type(other) and self.args == other.args
 
+
 class Any(RegExp):
     pass
 
@@ -19,8 +20,10 @@ class Any(RegExp):
 class Normal(RegExp):
     pass
 
+
 class Or(RegExp):
     pass
+
 
 class Str(RegExp):
     pass
@@ -29,29 +32,32 @@ class Str(RegExp):
 class ZeroOrMore(RegExp):
     pass
 
+
 OPERATORS = {"|"}
+
+
 def parse_regexp(expression):
 
     stack = list()
-    output = ''
+    output = ""
 
     for character in expression:
 
         if character not in OPERATORS:
             output += character
-        elif character == '(':
-            stack.append('(')
-        elif character==')':
-            while stack and stack[-1] != '(':
+        elif character == "(":
+            stack.append("(")
+        elif character == ")":
+            while stack and stack[-1] != "(":
                 output += stack.pop()
             stack.pop()
         else:
-            while stack and stack[-1] != '(':
+            while stack and stack[-1] != "(":
                 output += stack.pop()
             stack.append(character)
 
     while stack:
-        output+=stack.pop()
+        output += stack.pop()
 
     print(f"{expression=} -> {output=}")
     return output
