@@ -1,24 +1,40 @@
-from itertools import chain
+from itertools import chain, product
 from copy import deepcopy
 from collections import deque
+from pprint import pprint
 
 
-SPACE = list(range(10))
-CELLS = (
-    (0, 0),
-    (0, 1),
-    (0, 2),
-    (1, 0),
-    (1, 1),
-    (1, 2),
-    (2, 0),
-    (2, 1),
-    (2, 2),
-)
+ROWS = "ABCDEFGHI"
+COLS = "123456789"
+SPACE = list(range(1, 10))
+
+ALL_COORDS = [r+c for r, c in product(ROWS, COLS)]
+BY_ROW = [list(map("".join, product(r, COLS))) for r in ROWS]
+BY_COLUMN = [list(map("".join, product(ROWS, c))) for c in COLS]
+BY_CELL = [
+    list(map("".join, product(rs, cs)))
+    for rs, cs in product(("ABC", "DEF", "GHI"), ("123", "456", "789"))
+]
+ALL_UNITS = BY_ROW + BY_CELL + BY_COLUMN
+PEERS_OF = {
+    coord: [u for u in ALL_UNITS if coord in u]
+    for coord in ALL_COORDS
+}
 
 
-def is_solved(puzzle):
-    return 0 not in set(chain.from_iterable(puzzle))
+def pos_of(coords):
+    return ord(coords[0]) - ord("A"), ord(coords[1]) - ord("0")
+
+
+def coords_of(pos):
+    return ROWS[pos[0]]+COLS[pos[1]]
+
+
+def as_matrix(board):
+    return [
+        [board[ri+ci] for ci in COLS]
+        for ri in ROWS
+    ]
 
 
 def sudo_print(puzzle, title=""):
@@ -36,79 +52,14 @@ def sudo_print(puzzle, title=""):
             print(row_sep)
         print(row_fmt % tuple(str(x) if x else " " for x in row))
     print("+---" * 3 + "+")
-    print("    ", "solved" * is_solved(puzzle))
 
 
 class SudokuPuzzle:
     SIZE = 9
 
-    @classmethod
-    def from_puzzle(cls, puzzle):
-        new = cls()
-        new.board = {
-            (i, j): value
-            for i, row in enumerate(puzzle)
-            for j, value in enumerate(row)
-            if value
-        }
-        new.update_moves()
-        return new
-
     def __init__(self):
         self.board = dict()
-        self.moves = list()
 
-    def available_moves(self):
-
-        def filter_moves(moves, value):
-            return list(filter(lambda x: value , moves))
-
-        for pos, options in self.moves:
-            for value in options:
-                # print("-->", pos, value)
-                puzzle = SudokuPuzzle()
-                puzzle.board = deepcopy(self.board)
-                puzzle.board[pos] = value
-                puzzle.update_moves()
-
-                yield puzzle
-
-    def is_solved(self):
-        return len(self.board) == 81
-
-    def update_moves(self):
-        self.moves = list()
-        for i in range(self.SIZE):
-            for j in range(self.SIZE):
-                pos = i, j
-                if pos not in self.board:
-                    moves = self.valid_moves_of(pos)
-                    if moves:
-                        self.moves.append((pos, moves))
-
-    def valid_moves_of(self, pos):
-        """Given a grid and a position, compute all valid options"""
-        if pos in self.board:
-            return set()
-
-        options = set(range(1, 10))
-
-        # check by row
-        row, col = pos
-        options -= set(self.board[row, i] for i in range(self.SIZE) if (row, i) in self.board)
-        # check by column
-        options -= set(self.board[i, col] for i in range(self.SIZE) if (i, col) in self.board)
-        # check by cell
-        cell_row = row // 3
-        cell_col = col // 3
-        options -= set(
-            self.board[cell_row * 3 + di, cell_col * 3 + dj]
-            for di, dj in CELLS
-            if (cell_row * 3 + di, cell_col * 3 + dj) in self.board
-        )
-
-        return options
-    
     def __repr__(self) -> str:
 
         row_fmt = "|" + "|".join(["%s" * 3] * 3) + "|"
@@ -116,49 +67,82 @@ class SudokuPuzzle:
 
         lines = list()
         for i in range(self.SIZE):
-            if i % 3 == 0: lines.append(row_sep)
+            if i % 3 == 0:
+                lines.append(row_sep)
 
-            lines.append(row_fmt % tuple(
-                str(self.board.get((i, j), " ")) for j in range(self.SIZE)
-            ))
-        
+            lines.append(
+                row_fmt
+                % tuple(str(self.board.get(coords_of((i, j)), " ")) for j in range(self.SIZE))
+            )
+
         lines.append(row_sep)
 
         return "\n".join(lines)
-    
-    def as_board(self):
-        return [
-            (self.board.get((i, j, 0)) for j in range(self.SIZE))
-            for i in range(self.SIZE) 
+
+    def __str__(self) -> str:
+        return repr(self)
+
+    def is_solved(self):
+        return len(self.board) == 81
+
+    def options_for(self, coord):
+        if coord in self.board:
+            return set()
+
+        options = set(SPACE) - set(
+            self.board[co]
+            for co in chain.from_iterable(PEERS_OF[coord])
+            if co in self.board
+        )
+
+        return options
+
+    def moves(self):
+        result = [
+            (co, options)
+            for co in ALL_COORDS
+            if (options := self.options_for(co))
         ]
 
+        result.sort(key=lambda pair: len(pair[1]))
+        return result
 
-def solve(puzzle):
+    @classmethod
+    def from_board(cls, board):
+        new = cls()
+        new.board = {
+            coords_of((i, j)): value
+            for i, row in enumerate(board)
+            for j, value in enumerate(row)
+            if value
+        }
+        return new
+
+    def deep_solve(self):
+        if self.is_solved():
+            return deepcopy(self.board)
+
+        for co, options in self.moves():
+            for value in options:
+                self.board[co] = value
+                solution = self.deep_solve()
+                if solution: return solution
+            del self.board[co]
+
+        return None
+
+def solve(board):
     """hopefully a faster version"""
-    sudo_print(puzzle, "from")
+    start = SudokuPuzzle.from_board(board)
+    solution = start.deep_solve()
+    if solution:
+        sudo_print(as_matrix(solution))
+        return as_matrix(solution)
 
-    start = SudokuPuzzle.from_puzzle(puzzle)
-    queue = deque([start])
-    cnt = 0
-    while queue:
-        cnt += 1
-
-        puzz = queue.popleft()
-
-        if cnt % 1000 == 0:
-            print("\t", cnt)
-            print(puzz, flush=True)
-        
-        for m in puzz.available_moves():
-            if m.is_solved():
-                return m.as_board()
-            
-            queue.append(m)
-
-    print(f"{start!r}")
     raise ValueError("Puzzle has no solutions.")
 
-def test_debug():
+
+def _test_debug():
     puzzle = [
         [5, 3, 0, 0, 7, 0, 0, 0, 0],
         [6, 0, 0, 1, 9, 5, 0, 0, 0],
@@ -179,36 +163,7 @@ def test_debug():
     assert False
 
 
-def _test_recursive_solver():
-    puzzle = [
-        [5, 3, 0, 0, 7, 0, 0, 0, 0],
-        [6, 0, 0, 1, 9, 5, 0, 0, 0],
-        [0, 9, 8, 0, 0, 0, 0, 6, 0],
-        [8, 0, 0, 0, 6, 0, 0, 0, 3],
-        [4, 0, 0, 8, 0, 3, 0, 0, 1],
-        [7, 0, 0, 0, 2, 0, 0, 0, 6],
-        [0, 6, 0, 0, 0, 0, 2, 8, 0],
-        [0, 0, 0, 4, 1, 9, 0, 0, 5],
-        [0, 0, 0, 0, 8, 0, 0, 7, 9],
-    ]
-
-    expected = [
-        [5, 3, 4, 6, 7, 8, 9, 1, 2],
-        [6, 7, 2, 1, 9, 5, 3, 4, 8],
-        [1, 9, 8, 3, 4, 2, 5, 6, 7],
-        [8, 5, 9, 7, 6, 1, 4, 2, 3],
-        [4, 2, 6, 8, 5, 3, 7, 9, 1],
-        [7, 1, 3, 9, 2, 4, 8, 5, 6],
-        [9, 6, 1, 5, 3, 7, 2, 8, 4],
-        [2, 8, 7, 4, 1, 9, 6, 3, 5],
-        [3, 4, 5, 2, 8, 6, 1, 7, 9],
-    ]
-
-    actual = sudoku(puzzle)
-    assert actual == expected
-
-
-def _test_basic_solver():
+def test_basic_solver():
     puzzle = [
         [5, 3, 0, 0, 7, 0, 0, 0, 0],
         [6, 0, 0, 1, 9, 5, 0, 0, 0],
@@ -237,7 +192,7 @@ def _test_basic_solver():
     assert actual == expected
 
 
-def _test_optimized_solver():
+def test_optimized_solver():
     puzzle = [
         [9, 0, 0, 0, 8, 0, 0, 0, 1],
         [0, 0, 0, 4, 0, 6, 0, 0, 0],
