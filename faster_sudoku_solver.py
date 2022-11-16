@@ -76,7 +76,11 @@ class SudokuPuzzle:
         return "\n".join(lines)
 
     def __str__(self) -> str:
-        return "".join(chain.from_iterable([str(self.board.get(ri + ci, 0)) for ci in COLS] for ri in ROWS))
+        return "".join(
+            chain.from_iterable(
+                [str(self.board.get(ri + ci, 0)) for ci in COLS] for ri in ROWS
+            )
+        )
 
     def is_solved(self):
         return len(self.board) == 81
