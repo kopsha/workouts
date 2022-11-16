@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from pytube import YouTube, Playlist
 from pytube.exceptions import PytubeError
+import os
 import re
 import subprocess
 
@@ -21,6 +22,7 @@ has_separator = re.compile(r"^\s*(.+?)\s*[^a-zA-Z\d\s]\s*(.+?)\s*$")
 
 
 def aggressive_clean(text):
+    # TODO: name cleanup can be massively improved
     drop_words = [
         "audio",
         "music video",
@@ -55,23 +57,35 @@ def download_audio(video: YouTube, to_path: str, position: int):
     print(f"Downloading {video.title} [{video.video_id}]")
     audio_streams = video.streams.filter(only_audio=True)
     best_audio = sorted(audio_streams, key=lambda x: int(x.abr[:-4]), reverse=True)[0]
+
     filename = aggressive_clean(video.title)
-    with_extension = ".".join((filename, best_audio.audio_codec))
-    best_audio.download(output_path=to_path, filename=with_extension, skip_existing=True)
-    print(f"    -> {with_extension}")
-    if not best_audio.audio_codec.endswith(".mp3"):
-        bitrate = best_audio.abr.replace("bps", "")
-        command = f"ffmpeg -i '{to_path}/{with_extension}' -b:a {bitrate} '{to_path}/{position:03d} - {filename}.mp3'"
-        exec(command)
-        print(f"    => {filename}.mp3")
+
+    # download audio stream as source
+    source_audiofile = ".".join((filename, best_audio.audio_codec))
+    source_audiofile_full = os.path.join(to_path, source_audiofile)
+    if os.path.isfile(source_audiofile_full):
+        print(f"    - {source_audiofile} < already exists")
+    else:
+        best_audio.download(output_path=to_path, filename=source_audiofile, skip_existing=True)
+        print(f"    - {source_audiofile} < downloaded")
+
+    # transcode downloaded files to mp3
+    target_audiofile = f"{position:03d} - {filename}.mp3"
+    target_audiofile_full = os.path.join(to_path, target_audiofile)
+    if not best_audio.audio_codec.endswith("mp3"):
+        if os.path.isfile(target_audiofile_full):
+            print(f"    - {target_audiofile_full} < already exists")
+        else:
+            bitrate = best_audio.abr.replace("bps", "")
+            command = f"ffmpeg -i '{source_audiofile_full}' -b:a {bitrate} '{target_audiofile_full}'"
+            exec(command)
+            print(f"    - {target_audiofile_full} < transcoded")
 
 
 def main(to_path):
-    # video = YouTube("https://www.youtube.com/watch?v=l54K_3gcRIE")
+    # TODO: pass the playlist as program parameter
     play = Playlist("https://www.youtube.com/playlist?list=PLCKf_DRH9vw1G5c1S0AXL5XZ8DHAiiBJF")
-    for i, video_url in enumerate(play.video_urls):
-        if i <= 80:
-            continue
+    for i, video_url in enumerate(play.video_urls[:9]):
         try:
             video = YouTube(video_url, use_oauth=True, allow_oauth_cache=True)
 
