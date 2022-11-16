@@ -79,12 +79,12 @@ def download_audio(video: YouTube, to_path: str, position: int):
     target_audiofile_full = os.path.join(to_path, target_audiofile)
     if not best_audio.audio_codec.endswith("mp3"):
         if os.path.isfile(target_audiofile_full):
-            print(f"    - {target_audiofile_full} < already exists")
+            print(f"    - {target_audiofile} < already exists")
         else:
             bitrate = best_audio.abr.replace("bps", "")
             command = f"ffmpeg -i '{source_audiofile_full}' -b:a {bitrate} '{target_audiofile_full}'"
             exec(command)
-            print(f"    - {target_audiofile_full} < transcoded")
+            print(f"    - {target_audiofile} < transcoded")
 
 
 def main(to_path):
