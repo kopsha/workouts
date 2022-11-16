@@ -43,7 +43,9 @@ def aggressive_clean(text):
         "\(HQ\)",
     ]
 
-    drop_all = "(" + "|".join(sorted(drop_words, reverse=True, key=lambda x: len(x))) + ")"
+    drop_all = (
+        "(" + "|".join(sorted(drop_words, reverse=True, key=lambda x: len(x))) + ")"
+    )
     result = re.sub(drop_all, "", text, flags=re.IGNORECASE)
 
     result = re.sub("\|+", "-", result)
@@ -52,6 +54,7 @@ def aggressive_clean(text):
     result = re.sub("\s+", " ", result)
 
     return result.strip().title()
+
 
 def download_audio(video: YouTube, to_path: str, position: int):
     print(f"Downloading {video.title} [{video.video_id}]")
@@ -66,7 +69,9 @@ def download_audio(video: YouTube, to_path: str, position: int):
     if os.path.isfile(source_audiofile_full):
         print(f"    - {source_audiofile} < already exists")
     else:
-        best_audio.download(output_path=to_path, filename=source_audiofile, skip_existing=True)
+        best_audio.download(
+            output_path=to_path, filename=source_audiofile, skip_existing=True
+        )
         print(f"    - {source_audiofile} < downloaded")
 
     # transcode downloaded files to mp3
@@ -84,7 +89,9 @@ def download_audio(video: YouTube, to_path: str, position: int):
 
 def main(to_path):
     # TODO: pass the playlist as program parameter
-    play = Playlist("https://www.youtube.com/playlist?list=PLCKf_DRH9vw1G5c1S0AXL5XZ8DHAiiBJF")
+    play = Playlist(
+        "https://www.youtube.com/playlist?list=PLCKf_DRH9vw1G5c1S0AXL5XZ8DHAiiBJF"
+    )
     for i, video_url in enumerate(play.video_urls[:9]):
         try:
             video = YouTube(video_url, use_oauth=True, allow_oauth_cache=True)
@@ -96,7 +103,9 @@ def main(to_path):
             download_audio(video, to_path, i)
 
         except PytubeError as err:
-            print(f"Video {video.video_id} ({i}), {video.title} cannot be downloaded, reason: {str(err)}.")
+            print(
+                f"Video {video.video_id} ({i}), {video.title} cannot be downloaded, reason: {str(err)}."
+            )
 
     print("done?", len(play.videos))
 
