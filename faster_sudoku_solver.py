@@ -1,5 +1,6 @@
 from itertools import chain, product
 from copy import deepcopy
+from collections import defaultdict
 
 
 ROWS = "ABCDEFGHI"
@@ -29,6 +30,9 @@ def as_matrix(board):
     return [[board[ri + ci] for ci in COLS] for ri in ROWS]
 
 
+depth = 0
+
+
 def sudo_print(puzzle, title=""):
 
     if not puzzle:
@@ -48,7 +52,7 @@ def sudo_print(puzzle, title=""):
 
 class SudokuPuzzle:
     SIZE = 9
-    CACHE = set()
+    SEEN = set()
 
     def __init__(self):
         self.board = dict()
@@ -76,7 +80,11 @@ class SudokuPuzzle:
         return "\n".join(lines)
 
     def __str__(self) -> str:
-        return "".join(chain.from_iterable([str(self.board.get(ri + ci, 0)) for ci in COLS] for ri in ROWS))
+        return "".join(
+            chain.from_iterable(
+                [str(self.board.get(ri + ci, 0)) for ci in COLS] for ri in ROWS
+            )
+        )
 
     def is_solved(self):
         return len(self.board) == 81
@@ -98,7 +106,7 @@ class SudokuPuzzle:
             (co, options) for co in ALL_COORDS if (options := self.options_for(co))
         ]
 
-        # result.sort(key=lambda pair: len(pair[1]))
+        result.sort(key=lambda pair: len(pair[1]))
         return result
 
     @classmethod
@@ -112,29 +120,59 @@ class SudokuPuzzle:
         }
         return new
 
+    def alternate_print(self):
+        alternate = defaultdict(list)
+        for co, val in self.board.items():
+            alternate[val].append(co)
+
+        for val in sorted(alternate):
+            print(f"{val}: {','.join(sorted(alternate[val]))}")
+
+    def alternate_eval(self):
+        alternate = defaultdict(list)
+        for co, val in self.board.items():
+            alternate[val].append(co)
+
+        for val in range(1, 10):
+            rowset = set(ROWS)
+            colset = set(COLS)
+            for co in alternate[val]:
+                rowset.discard(co[0])
+                colset.discard(co[1])
+            print(val, "->", ",".join(sorted(alternate[val])))
+            print("\t", ",".join(sorted(rowset)))
+            print("\t", ",".join(sorted(colset)))
+
     def deep_solve(self):
         if self.is_solved():
+            self.alternate_print()
             return deepcopy(self.board)
 
-        # print("\n", repr(self), "\n", len(SudokuPuzzle.CACHE))
-        this = str(self)
-        if this in SudokuPuzzle.CACHE:
-            print("\n", repr(self), "\n", len(SudokuPuzzle.CACHE))
-            return None
-            raise RuntimeError("Spinning in circles")
-        SudokuPuzzle.CACHE.add(str(self))
+        global depth
+        depth += 1
+        this_depth = int(depth)
+        SudokuPuzzle.SEEN.add(str(self))
+        print(repr(self))
+        # input(f"{depth=}")
 
-        for co, options in self.moves():
+        available_moves = self.moves()
+        if not available_moves:
+            print("[x] no valid moves")
+
+        for co, options in available_moves:
             for value in options:
                 self.board[co] = value
+                print(f"\t{co} <- {value}")
+                if str(self) in SudokuPuzzle.SEEN:
+                    continue
+
                 if solution := self.deep_solve():
                     return solution
-            del self.board[co]
 
-        if str(self) == this:
-            print("check")
-        else:
-            raise RuntimeError("bug")
+            del self.board[co]
+            depth = this_depth
+            print(f"restoring {this_depth=} @ {co}")
+            print(repr(self))
 
         return None
 
@@ -142,11 +180,13 @@ class SudokuPuzzle:
 def solve(board):
     """hopefully a faster version"""
     start = SudokuPuzzle.from_board(board)
-    print("**********", len(start.board), 81 - len(start.board))
+    print(repr(start))
+    start.alternate_eval()
+    input("check this out")
+    # print("**********", len(start.board), 81 - len(start.board))
     solution = start.deep_solve()
     if solution:
         sudo_print(as_matrix(solution))
-        assert False
         return as_matrix(solution)
 
     raise ValueError("Puzzle has no solutions.")
@@ -202,7 +242,7 @@ def test_basic_solver():
     assert actual == expected
 
 
-def _test_optimized_solver():
+def test_optimized_solver():
     puzzle = [
         [9, 0, 0, 0, 8, 0, 0, 0, 1],
         [0, 0, 0, 4, 0, 6, 0, 0, 0],
@@ -229,3 +269,8 @@ def _test_optimized_solver():
 
     actual = solve(puzzle)
     assert actual == expected
+
+
+if __name__ == "__main__":
+    test_basic_solver()
+    # test_optimized_solver()
