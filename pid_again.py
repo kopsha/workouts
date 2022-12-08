@@ -38,7 +38,10 @@ def read_inputs():
 
 
 def compute_distances(checkpoints):
-    distances = [int(math.dist(z1, z2)) for z1, z2 in zip([checkpoints[-1]] + checkpoints[:-1], checkpoints)]
+    distances = [
+        int(math.dist(z1, z2))
+        for z1, z2 in zip([checkpoints[-1]] + checkpoints[:-1], checkpoints)
+    ]
     longest = max(distances)
     return distances.index(longest)
 
@@ -77,6 +80,7 @@ def break_on_large_angles(c_angle):
 
     return thrust
 
+
 def boost_on_long_distance(thrust, has_boost, c_angle, c_index):
     if has_boost and abs(c_angle) < 10 and lap > 1 and longest_segment == c_index:
         has_boost = False
@@ -102,12 +106,12 @@ def main():
 
     while True:
         position, opponent, checkpoint, c_distance, c_angle, c_index = read_inputs()
-        target = closer_target(position, checkpoint, CHECKPOINT_RADIUS//10)
+        target = closer_target(position, checkpoint, CHECKPOINT_RADIUS // 10)
 
         actual = last_position - position
         desired = target - position
         deviation = math.remainder(cmath.phase(actual) - cmath.phase(desired), cmath.pi)
-        rotate = cmath.rect(1, -deviation/3)
+        rotate = cmath.rect(1, -deviation / 3)
         target = desired * rotate + position  # apply correction
 
         # apply braking based on angle
@@ -117,7 +121,10 @@ def main():
         has_boost, thrust = boost_on_long_distance(thrust, has_boost, c_angle, c_index)
 
         print(f"LAP {lap}: {c_distance:5}m, {c_angle:4}°, {has_boost}", file=sys.stderr)
-        distances = [int(math.dist(z1, z2)) for z1, z2 in zip(checkpoints, checkpoints[1:] + [checkpoints[0]])]
+        distances = [
+            int(math.dist(z1, z2))
+            for z1, z2 in zip(checkpoints, checkpoints[1:] + [checkpoints[0]])
+        ]
         print(f"CP: {checkpoints}", file=sys.stderr)
         print(f"D: {distances}", file=sys.stderr)
         print(f"Current: {c_index}, Longest: {longest_segment}", file=sys.stderr)
