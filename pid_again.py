@@ -111,12 +111,7 @@ def steer_towards_opponent(target, position, opponent, last_opponent):
 
 
 def boost_on_long_distance(thrust, c_dist, c_angle, c_index):
-    if (
-        c_dist > 5000
-        and abs(c_angle) < 5
-        and lap > 1
-        and longest_segment == c_index
-    ):
+    if c_dist > 5000 and abs(c_angle) < 5 and lap > 1 and longest_segment == c_index:
         thrust = "BOOST"
 
     return thrust
