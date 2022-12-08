@@ -87,8 +87,10 @@ def break_on_close_target(c_dist, velocity):
 
     thrust = 100
     if abs(velocity) > TURN_SPEED:
-        if c_dist < CHECKPOINT_RADIUS * 2.4:
-            thrust = "SHIELD"
+        if c_dist < CHECKPOINT_RADIUS * 1.4:
+            thrust = 34
+        # elif c_dist < CHECKPOINT_RADIUS * 2.8:
+        #     thrust = 66
 
     return thrust
 
@@ -108,23 +110,19 @@ def steer_towards_opponent(target, position, opponent, last_opponent):
     return target
 
 
-def boost_on_long_distance(thrust, has_boost, c_dist, c_angle, c_index):
+def boost_on_long_distance(thrust, c_dist, c_angle, c_index):
     if (
-        has_boost
-        and c_dist > 5000
+        c_dist > 5000
         and abs(c_angle) < 5
         and lap > 1
         and longest_segment == c_index
     ):
-        has_boost = False
         thrust = "BOOST"
 
-    return has_boost, thrust
+    return thrust
 
 
 def main():
-    has_boost = True
-
     # first loop
     (
         last_position,
@@ -151,15 +149,12 @@ def main():
         thrust = break_on_close_target(c_distance, velocity=actual)
         thrust = break_on_large_angles(thrust, c_angle)
 
-        has_boost, thrust = boost_on_long_distance(
-            thrust, has_boost, c_distance, c_angle, c_index
-        )
+        thrust = boost_on_long_distance(thrust, c_distance, c_angle, c_index)
 
         print(
-            f"LAP {lap}: {int(abs(actual)):3}m/s, {c_distance:5}m, {c_angle:4}°, {has_boost}",
+            f"LAP {lap}: {int(abs(actual)):3}m/s, {c_distance:5}m, {c_angle:4}°",
             file=sys.stderr,
         )
-        print(f"Current: {c_index}, Longest: {longest_segment}", file=sys.stderr)
         print(*coords(target), thrust)
 
         last_position = position
