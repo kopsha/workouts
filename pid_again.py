@@ -100,7 +100,7 @@ def steer_towards_opponent(target, position, opponent, last_opponent):
     opp_angle = abs(math.remainder(ph1 - ph2, cmath.pi))
 
     opponent_dist = abs(position - opponent)
-    if opp_angle < cmath.pi/4 and opponent_dist <= CHECKPOINT_RADIUS * 3:
+    if opp_angle < cmath.pi / 4 and opponent_dist <= CHECKPOINT_RADIUS * 3:
         print(f"Opp angle: {math.degrees(opp_angle):.1f}°", file=sys.stderr)
         x = (target.real * 2 + opponent.real) / 3
         y = (target.imag * 2 + opponent.imag) / 3
@@ -108,9 +108,14 @@ def steer_towards_opponent(target, position, opponent, last_opponent):
     return target
 
 
-
 def boost_on_long_distance(thrust, has_boost, c_dist, c_angle, c_index):
-    if has_boost and c_dist > 5000 and abs(c_angle) < 5 and lap > 1 and longest_segment == c_index:
+    if (
+        has_boost
+        and c_dist > 5000
+        and abs(c_angle) < 5
+        and lap > 1
+        and longest_segment == c_index
+    ):
         has_boost = False
         thrust = "BOOST"
 
@@ -142,14 +147,18 @@ def main():
         rotate = cmath.rect(1, -deviation / 3)
         target = desired * rotate + position  # apply correction
 
-
         target = steer_towards_opponent(target, position, opponent, last_opponent)
         thrust = break_on_close_target(c_distance, velocity=actual)
         thrust = break_on_large_angles(thrust, c_angle)
 
-        has_boost, thrust = boost_on_long_distance(thrust, has_boost, c_distance, c_angle, c_index)
+        has_boost, thrust = boost_on_long_distance(
+            thrust, has_boost, c_distance, c_angle, c_index
+        )
 
-        print(f"LAP {lap}: {int(abs(actual)):3}m/s, {c_distance:5}m, {c_angle:4}°, {has_boost}", file=sys.stderr)
+        print(
+            f"LAP {lap}: {int(abs(actual)):3}m/s, {c_distance:5}m, {c_angle:4}°, {has_boost}",
+            file=sys.stderr,
+        )
         print(f"Current: {c_index}, Longest: {longest_segment}", file=sys.stderr)
         print(*coords(target), thrust)
 
