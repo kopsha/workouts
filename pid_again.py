@@ -1,17 +1,20 @@
 import math
 import cmath
+import sys
 
-from collections import deque
 
-
-TURN_SPEED = 300
-TOP_SPEED = 600
 CHECKPOINT_RADIUS = 600
 checkpoints = list()
+longest_segment = None
 last_checkpoint = (None, None)
+lap = 1
 
 
 def read_inputs():
+    global last_checkpoint
+    global lap
+    global longest_segment
+    global checkpoints
     x, y, cx, cy, c_distance, c_angle = map(int, input().split())
     opx, opy = map(int, input().split())
     position = complex(x, y)
@@ -22,12 +25,22 @@ def read_inputs():
     c_index = None
     if cp != last_checkpoint:
         if cp in checkpoints:
-            c_index = checkpoints.index(cp)
+            if checkpoints.index(cp) == 0:
+                lap += 1
+                longest_segment = compute_distances(checkpoints)
         else:
-            c_index = len(checkpoints)
             checkpoints.append(cp)
 
+    last_checkpoint = cp
+    c_index = checkpoints.index(cp)
+
     return position, opponent, checkpoint, c_distance, c_angle, c_index
+
+
+def compute_distances(checkpoints):
+    distances = [int(math.dist(z1, z2)) for z1, z2 in zip([checkpoints[-1]] + checkpoints[:-1], checkpoints)]
+    longest = max(distances)
+    return distances.index(longest)
 
 
 def coords(cpoint):
@@ -51,8 +64,29 @@ def inv_lerp(left: float, right: float, v: float) -> float:
     return (v - left) / (right - left)
 
 
+def break_on_large_angles(c_angle):
+    """apply braking strategy based on angle to target"""
+
+    angle = abs(c_angle)
+    if angle < 45:
+        thrust = 100
+    elif angle < 90:
+        thrust = 66
+    else:
+        thrust = 34
+
+    return thrust
+
+def boost_on_long_distance(thrust, has_boost, c_angle, c_index):
+    if has_boost and abs(c_angle) < 10 and lap > 1 and longest_segment == c_index:
+        has_boost = False
+        thrust = "BOOST"
+
+    return has_boost, thrust
+
+
 def main():
-    boost = 1
+    has_boost = True
 
     # first loop
     (
@@ -66,30 +100,27 @@ def main():
     thrust = 100
     print(*coords(last_target), thrust)
 
-    max_speed = 0
-
     while True:
         position, opponent, checkpoint, c_distance, c_angle, c_index = read_inputs()
-        target = closer_target(position, checkpoint, CHECKPOINT_RADIUS // 10)
-        velocity = position - last_position
-
-        speed = int(abs(velocity))
-        max_speed = max(speed, max_speed)
-
-        angle = abs(c_angle)
-        if angle < 45:
-            thrust = 100
-        elif angle < 90:
-            thrust = 55
-        else:
-            thrust = 34
+        target = closer_target(position, checkpoint, CHECKPOINT_RADIUS//10)
 
         actual = last_position - position
         desired = target - position
         deviation = math.remainder(cmath.phase(actual) - cmath.phase(desired), cmath.pi)
-        rotate = cmath.rect(1, -deviation / 3)
+        rotate = cmath.rect(1, -deviation/3)
         target = desired * rotate + position  # apply correction
 
+        # apply braking based on angle
+        thrust = break_on_large_angles(c_angle)
+
+        # apply boost strategy
+        has_boost, thrust = boost_on_long_distance(thrust, has_boost, c_angle, c_index)
+
+        print(f"LAP {lap}: {c_distance:5}m, {c_angle:4}°, {has_boost}", file=sys.stderr)
+        distances = [int(math.dist(z1, z2)) for z1, z2 in zip(checkpoints, checkpoints[1:] + [checkpoints[0]])]
+        print(f"CP: {checkpoints}", file=sys.stderr)
+        print(f"D: {distances}", file=sys.stderr)
+        print(f"Current: {c_index}, Longest: {longest_segment}", file=sys.stderr)
         print(*coords(target), thrust)
 
         last_position = position
