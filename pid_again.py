@@ -102,7 +102,7 @@ def steer_towards_opponent(target, position, opponent, last_opponent):
     opp_angle = abs(math.remainder(ph1 - ph2, cmath.pi))
 
     opponent_dist = abs(position - opponent)
-    if opp_angle < cmath.pi / 4 and opponent_dist <= CHECKPOINT_RADIUS * 3:
+    if opp_angle < cmath.pi / 5 and opponent_dist <= CHECKPOINT_RADIUS * 3:
         print(f"Opp angle: {math.degrees(opp_angle):.1f}°", file=sys.stderr)
         x = (target.real * 2 + opponent.real) / 3
         y = (target.imag * 2 + opponent.imag) / 3
@@ -127,7 +127,7 @@ def main():
         c_angle,
         c_index,
     ) = read_inputs()
-    thrust = 100
+    thrust = "BOOST"
     print(*coords(last_target), thrust)
 
     while True:
@@ -137,14 +137,14 @@ def main():
         actual = last_position - position
         desired = target - position
         deviation = math.remainder(cmath.phase(actual) - cmath.phase(desired), cmath.pi)
-        rotate = cmath.rect(1, -deviation / 3)
+        rotate = cmath.rect(1, -deviation / 4)
         target = desired * rotate + position  # apply correction
 
         target = steer_towards_opponent(target, position, opponent, last_opponent)
         thrust = break_on_close_target(c_distance, velocity=actual)
         thrust = break_on_large_angles(thrust, c_angle)
 
-        thrust = boost_on_long_distance(thrust, c_distance, c_angle, c_index)
+        # thrust = boost_on_long_distance(thrust, c_distance, c_angle, c_index)
 
         print(
             f"LAP {lap}: {int(abs(actual)):3}m/s, {c_distance:5}m, {c_angle:4}°",
