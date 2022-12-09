@@ -112,14 +112,26 @@ def boost_on_long_distance(thrust, c_dist, c_angle, c_index):
     return thrust
 
 
+def execute(orders):
+    for cmd in orders:
+        print(*cmd)
+
+
 def main():
     # first loop
-    race_layout = read_race_layout()
-    print(race_layout, file=sys.stderr)
+    layout = read_race_layout()
+    print(layout, file=sys.stderr)
 
     while True:
         pods = read_all_pods()
         print(pods, file=sys.stderr)
+
+        # lame strategy
+        orders = [
+            (*layout["checkpoints"][pods["me_first"].cp_id], 100),
+            (*layout["checkpoints"][pods["me_second"].cp_id], 100),
+        ]
+        execute(orders)
 
 
 if __name__ == "__main__":
