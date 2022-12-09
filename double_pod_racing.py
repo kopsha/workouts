@@ -1,30 +1,75 @@
 import math
 import cmath
 import sys
-from dataclasses import dataclass
 from collections import namedtuple
+from typing import Union
 
 
 CP_RADIUS = 600
-TURN_SPEED = 400  # TODO: do we really need this?
+CP_GRAVITY = CP_RADIUS // 10
+TURN_SPEED = 400
 
 Coord = namedtuple("Coord", ["x", "y"])
 Pod = namedtuple("Pod", ["x", "y", "vx", "vy", "angle", "cp_id"])
 
 
-@dataclass
 class PodRacer:
-    position: complex
-    velocity: complex
-    target: complex
-
-    def __init__(self, pod: Pod, checkpoints: list[Coord]) -> None:
+    def __init__(self, pod: Pod, target: Coord) -> None:
         self.position = complex(pod.x, pod.y)
         self.velocity = complex(pod.vx, pod.vy)
-        self.target = complex(*checkpoints[pod.cp_id])
+        self.angle = math.radians(pod.angle)
+        self.target = self.touch(complex(*target))
+        self.thurst = self.break_near_target(100)
+        self.thurst = self.break_on_large_angles(self.thurst)
+        self.has_boost = True
+    
+    def touch(self, target: complex) -> complex:
+        """Will barely touch the checkpoint"""
+        along = self.position - target
+        touch_delta = cmath.rect(CP_GRAVITY - CP_RADIUS, cmath.phase(along))
+        return target - touch_delta
+
+    def break_near_target(self, thrust: int) -> int:
+        """apply braking strategy based on distance to target"""
+        distance = abs(self.position - self.target)
+        if abs(self.velocity) > TURN_SPEED and distance < CP_RADIUS * 2:
+            new_thrust = 34
+        else:
+            new_thrust = thrust
+
+        return new_thrust
+
+    def break_on_large_angles(self, thrust: int) -> int:
+        """apply braking strategy based on angle to target"""
+        target_angle = cmath.phase(self.target - self.position)
+        if target_angle < 0:
+            target_angle = 2*cmath.pi + target_angle
+
+        actual = abs(target_angle - self.angle)
+        if actual < cmath.pi / 4:
+            thrust = thrust
+        elif actual < cmath.pi / 2:
+            thrust = 66
+        else:
+            thrust = 34
+
+        return thrust
+
+    def __str__(self):
+        return (
+            f"{int(round(self.target.real))} "
+            f"{int(round(self.target.imag))} "
+            f"{self.thurst}"
+        )
+
+    def __repr__(self):
+        return (
+            f"V:{int(round(abs(self.velocity))):4} m/s "
+            f"O:{self.thurst:4}"
+        )
 
 
-def read_race_layout():
+def read_race_layout() -> dict:
     """
     Initialization input
     Line 1: `laps`: the number of laps to complete the race.
@@ -45,7 +90,7 @@ def read_race_layout():
     return race_layout
 
 
-def read_all_pods():
+def read_all_pods() -> dict:
     """
     Read input for one game turn
     First 2 lines: Your two pods.
@@ -73,35 +118,6 @@ def to_coords(z):
     return int(round(z.real)), int(round(z.imag))
 
 
-def closer_target(position, checkpoint, gravity):
-    along = position - checkpoint
-    touchdelta = cmath.rect(gravity - CP_RADIUS, cmath.phase(along))
-    return checkpoint - touchdelta
-
-
-def break_on_large_angles(thrust, c_angle):
-    """apply braking strategy based on angle to target"""
-    angle = abs(c_angle)
-    if angle < 45:
-        thrust = thrust
-    elif angle < 90:
-        thrust = 66
-    else:
-        thrust = 34
-
-    return thrust
-
-
-def break_on_close_target(c_dist, velocity):
-    """apply braking strategy based on distance to target"""
-    thrust = 100
-    if abs(velocity) > TURN_SPEED:
-        if c_dist < CP_RADIUS * 1.4:
-            thrust = 34
-
-    return thrust
-
-
 def steer_towards_opponent(target, position, opponent, last_opponent):
     # TODO: rework this
     ph1 = cmath.phase(target - position)
@@ -124,28 +140,32 @@ def boost_on_long_distance(thrust, c_dist, c_angle, c_index):
     return thrust
 
 
-def execute(orders):
-    for cmd in orders:
-        print(*cmd)
-
-
 def main():
-    # first loop
     layout = read_race_layout()
-    print(layout, file=sys.stderr)
+
+    # first turn
+    pods = read_all_pods()
+    first_me = PodRacer(pods["me_first"], layout["checkpoints"][pods["me_first"].cp_id])
+    second_me = PodRacer(pods["me_second"], layout["checkpoints"][pods["me_second"].cp_id])
+
+    print(repr(first_me), file=sys.stderr)
+    print(repr(second_me), file=sys.stderr)
+
+    print(first_me)
+    print(second_me)
 
     while True:
         pods = read_all_pods()
+        first_me = PodRacer(pods["me_first"], layout["checkpoints"][pods["me_first"].cp_id])
+        second_me = PodRacer(pods["me_second"], layout["checkpoints"][pods["me_second"].cp_id])
 
-        first_me = PodRacer(pods["me_first"], layout["checkpoints"])
-        second_me = PodRacer(pods["me_first"], layout["checkpoints"])
+        print(repr(first_me), pods["me_first"], file=sys.stderr)
+        print(repr(second_me), pods["me_second"], file=sys.stderr)
 
-        # lame strategy
-        orders = [
-            (*to_coords(first_me.target), 100),
-            (*to_coords(second_me.target), 100),
-        ]
-        execute(orders)
+        second_me.thurst = 34
+
+        print(first_me)
+        print(second_me)
 
 
 if __name__ == "__main__":
