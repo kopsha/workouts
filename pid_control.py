@@ -5,11 +5,39 @@ from collections import namedtuple
 
 Coords = namedtuple("Coords", ("x", "y"))
 
-actual = [7465, 14949, 22496, 26723, 31400, 30278, 41652, 44566, 34598, 51410, 30974, 56745, 54693, 43409, 39075, 43252, 43965, 54914, 47618, 64159, 48826, 54376, 32433, 51236, 67601]
+actual = [
+    7465,
+    14949,
+    22496,
+    26723,
+    31400,
+    30278,
+    41652,
+    44566,
+    34598,
+    51410,
+    30974,
+    56745,
+    54693,
+    43409,
+    39075,
+    43252,
+    43965,
+    54914,
+    47618,
+    64159,
+    48826,
+    54376,
+    32433,
+    51236,
+    67601,
+]
 
 TOP_SPEED = 30_000
 LOW = 0
 HIGH = 100
+
+
 def PID(pk, ik, dk, initial_time):
     last_error = 0
     last_time = initial_time
@@ -21,7 +49,7 @@ def PID(pk, ik, dk, initial_time):
     while True:
         set_point, measured, now = yield output
         error = set_point - measured
-        delta_time = (now - last_time)*1000
+        delta_time = (now - last_time) * 1000
         delta_error = error - last_error
 
         proportional = pk * error
@@ -31,7 +59,7 @@ def PID(pk, ik, dk, initial_time):
         output = proportional + integral + derivative
         # output = max(LOW, min(output, HIGH))
         print(f"({set_point:.1f}) {measured:10.0f} => {output:10.0f}")
-        print(f"\t{error=:.1f}, {delta_error=:.1f}, {delta_time=:.1f}")        
+        print(f"\t{error=:.1f}, {delta_error=:.1f}, {delta_time=:.1f}")
         print(f"\t{proportional=:.1f}, {integral=:.1f}, {derivative=:.1f}")
 
         # output = max(LOW, min(output, HIGH))
@@ -46,7 +74,6 @@ def main(path):
     cc = PID(1, 1, 1, last_time)
     cc.send(None)
     time.sleep(0.13)
-
 
     for i in range(21):
         print(f"---- {i+1:03} ----")
@@ -74,7 +101,6 @@ def backup():
         acc = HIGH
         better = pod_cc.send((TOP_SPEED, travel, now))
 
-
         if cp_distance < BRAKE_DISTANCE:
             if velocity > FAST:
                 acc = 13
@@ -86,16 +112,13 @@ def backup():
         if acc > 60 and abs(angle) > 45 and velocity > FAST:
             acc = 55
 
-
         print(f"{cp_distance=}, {angle=}", file=sys.stderr)
         print(f"{travel:.3f} {time_delta:.3f} {velocity}", file=sys.stderr)
         print(f"acc = {better}", file=sys.stderr)
 
-
         print(target.x, target.y, acc)
         last_position = position
         last_time = now
-
 
 
 if __name__ == "__main__":

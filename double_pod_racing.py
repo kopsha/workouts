@@ -22,9 +22,7 @@ def read_race_layout():
     """
     lap_count = int(input())
     cp_count = int(input())
-    checkpoints = [
-        Coord(*map(int, input().split())) for _ in range(cp_count)
-    ]
+    checkpoints = [Coord(*map(int, input().split())) for _ in range(cp_count)]
 
     race_layout = dict(
         lap_count=lap_count,
@@ -57,7 +55,7 @@ def read_all_pods():
         him_first=him_first,
         him_second=him_second,
     )
-    
+
 
 def to_coords(z):
     return int(round(z.real)), int(round(z.imag))
