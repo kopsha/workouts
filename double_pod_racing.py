@@ -10,7 +10,7 @@ CP_GRAVITY = CP_RADIUS // 10
 TURN_SPEED = 400
 
 Coord = namedtuple("Coord", ["x", "y"])
-Pod = namedtuple("Pod", ["x", "y", "vx", "vy", "angle", "cp_id"])
+Pod = namedtuple("Pod", ["x", "y", "vx", "vy", "angle", "cpid"])
 
 
 class PodRacer:
@@ -22,7 +22,7 @@ class PodRacer:
         self.thurst = self.break_near_target(100)
         self.thurst = self.break_on_large_angles(self.thurst)
         self.has_boost = True
-    
+
     def touch(self, target: complex) -> complex:
         """Will barely touch the checkpoint"""
         along = self.position - target
@@ -43,7 +43,7 @@ class PodRacer:
         """apply braking strategy based on angle to target"""
         target_angle = cmath.phase(self.target - self.position)
         if target_angle < 0:
-            target_angle = 2*cmath.pi + target_angle
+            target_angle = 2 * cmath.pi + target_angle
 
         actual = abs(target_angle - self.angle)
         if actual < cmath.pi / 4:
@@ -63,10 +63,7 @@ class PodRacer:
         )
 
     def __repr__(self):
-        return (
-            f"V:{int(round(abs(self.velocity))):4} m/s "
-            f"O:{self.thurst:4}"
-        )
+        return f"V:{int(round(abs(self.velocity))):4} m/s O:{self.thurst:4}"
 
 
 def read_race_layout() -> dict:
@@ -145,8 +142,10 @@ def main():
 
     # first turn
     pods = read_all_pods()
-    first_me = PodRacer(pods["me_first"], layout["checkpoints"][pods["me_first"].cp_id])
-    second_me = PodRacer(pods["me_second"], layout["checkpoints"][pods["me_second"].cp_id])
+    first_me = PodRacer(pods["me_first"], layout["checkpoints"][pods["me_first"].cpid])
+    second_me = PodRacer(
+        pods["me_second"], layout["checkpoints"][pods["me_second"].cpid]
+    )
 
     print(repr(first_me), file=sys.stderr)
     print(repr(second_me), file=sys.stderr)
@@ -156,8 +155,12 @@ def main():
 
     while True:
         pods = read_all_pods()
-        first_me = PodRacer(pods["me_first"], layout["checkpoints"][pods["me_first"].cp_id])
-        second_me = PodRacer(pods["me_second"], layout["checkpoints"][pods["me_second"].cp_id])
+        first_me = PodRacer(
+            pods["me_first"], layout["checkpoints"][pods["me_first"].cpid]
+        )
+        second_me = PodRacer(
+            pods["me_second"], layout["checkpoints"][pods["me_second"].cpid]
+        )
 
         print(repr(first_me), pods["me_first"], file=sys.stderr)
         print(repr(second_me), pods["me_second"], file=sys.stderr)
