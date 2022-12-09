@@ -1,8 +1,9 @@
+from __future__ import annotations
+
 import math
 import cmath
 import sys
 from collections import namedtuple
-from typing import Union
 
 
 CP_RADIUS = 600
@@ -14,7 +15,8 @@ Pod = namedtuple("Pod", ["x", "y", "vx", "vy", "angle", "cpid"])
 
 
 class PodRacer:
-    def __init__(self, pod: Pod, target: Coord) -> None:
+    def __init__(self, name, pod: Pod, target: Coord) -> None:
+        self.name = name
         self.position = complex(pod.x, pod.y)
         self.velocity = complex(pod.vx, pod.vy)
         self.angle = math.radians(pod.angle)
@@ -54,6 +56,16 @@ class PodRacer:
             thrust = 34
 
         return thrust
+    
+    @property
+    def next_position(self):
+        """lame predictor"""
+        return self.position + self.velocity
+    
+    def defend_on_collision(self, opponent: PodRacer):
+        future_dist = int(round(abs(self.next_position - opponent.next_position)))
+        if (future_dist < 1200):
+            print(self.name, future_dist, "m from", opponent.name, file=sys.stderr)
 
     def __str__(self):
         return (
@@ -142,9 +154,18 @@ def main():
 
     # first turn
     pods = read_all_pods()
-    first_me = PodRacer(pods["me_first"], layout["checkpoints"][pods["me_first"].cpid])
+    first_me = PodRacer(
+        "me1", pods["me_first"], layout["checkpoints"][pods["me_first"].cpid]
+    )
     second_me = PodRacer(
-        pods["me_second"], layout["checkpoints"][pods["me_second"].cpid]
+        "me2", pods["me_second"], layout["checkpoints"][pods["me_second"].cpid]
+    )
+
+    him1 = PodRacer(
+        "him1", pods["him_first"], layout["checkpoints"][pods["him_first"].cpid]
+    )
+    him2 = PodRacer(
+        "him2", pods["him_second"], layout["checkpoints"][pods["him_second"].cpid]
     )
 
     print(repr(first_me), file=sys.stderr)
