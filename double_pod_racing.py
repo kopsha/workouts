@@ -56,16 +56,18 @@ class PodRacer:
             thrust = 34
 
         return thrust
-    
+
     @property
     def next_position(self):
         """lame predictor"""
         return self.position + self.velocity
-    
+
     def defend_on_collision(self, opponent: PodRacer):
         future_dist = int(round(abs(self.next_position - opponent.next_position)))
-        if (future_dist < 1200):
+        if future_dist < 1200:
             print(self.name, future_dist, "m from", opponent.name, file=sys.stderr)
+        if future_dist < 800:
+            self.thurst = "SHIELD"
 
     def __str__(self):
         return (
@@ -161,32 +163,34 @@ def main():
         "me2", pods["me_second"], layout["checkpoints"][pods["me_second"].cpid]
     )
 
-    him1 = PodRacer(
-        "him1", pods["him_first"], layout["checkpoints"][pods["him_first"].cpid]
-    )
-    him2 = PodRacer(
-        "him2", pods["him_second"], layout["checkpoints"][pods["him_second"].cpid]
-    )
-
-    print(repr(first_me), file=sys.stderr)
-    print(repr(second_me), file=sys.stderr)
-
+    first_me.thurst = "BOOST"
     print(first_me)
     print(second_me)
 
     while True:
         pods = read_all_pods()
         first_me = PodRacer(
-            pods["me_first"], layout["checkpoints"][pods["me_first"].cpid]
+            "me1", pods["me_first"], layout["checkpoints"][pods["me_first"].cpid]
         )
         second_me = PodRacer(
-            pods["me_second"], layout["checkpoints"][pods["me_second"].cpid]
+            "me2", pods["me_second"], layout["checkpoints"][pods["me_second"].cpid]
+        )
+        him1 = PodRacer(
+            "him1", pods["him_first"], layout["checkpoints"][pods["him_first"].cpid]
+        )
+        him2 = PodRacer(
+            "him2", pods["him_second"], layout["checkpoints"][pods["him_second"].cpid]
         )
 
-        print(repr(first_me), pods["me_first"], file=sys.stderr)
-        print(repr(second_me), pods["me_second"], file=sys.stderr)
+        # print(repr(first_me), pods["me_first"], file=sys.stderr)
+        # print(repr(second_me), pods["me_second"], file=sys.stderr)
 
-        second_me.thurst = 34
+        # second_me.thurst = 55
+
+        first_me.defend_on_collision(him1)
+        first_me.defend_on_collision(him2)
+        second_me.defend_on_collision(him1)
+        second_me.defend_on_collision(him2)
 
         print(first_me)
         print(second_me)
