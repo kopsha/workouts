@@ -1,7 +1,7 @@
 import math
 import cmath
 import sys
-
+from dataclasses import dataclass
 from collections import namedtuple
 
 
@@ -10,6 +10,18 @@ TURN_SPEED = 400  # TODO: do we really need this?
 
 Coord = namedtuple("Coord", ["x", "y"])
 Pod = namedtuple("Pod", ["x", "y", "vx", "vy", "angle", "cp_id"])
+
+
+@dataclass
+class PodRacer:
+    position: complex
+    velocity: complex
+    target: complex
+
+    def __init__(self, pod: Pod, checkpoints: list[Coord]) -> None:
+        self.position = complex(pod.x, pod.y)
+        self.velocity = complex(pod.vx, pod.vy)
+        self.target = complex(*checkpoints[pod.cp_id])
 
 
 def read_race_layout():
@@ -124,12 +136,14 @@ def main():
 
     while True:
         pods = read_all_pods()
-        print(pods, file=sys.stderr)
+
+        first_me = PodRacer(pods["me_first"], layout["checkpoints"])
+        second_me = PodRacer(pods["me_first"], layout["checkpoints"])
 
         # lame strategy
         orders = [
-            (*layout["checkpoints"][pods["me_first"].cp_id], 100),
-            (*layout["checkpoints"][pods["me_second"].cp_id], 100),
+            (*to_coords(first_me.target), 100),
+            (*to_coords(second_me.target), 100),
         ]
         execute(orders)
 
