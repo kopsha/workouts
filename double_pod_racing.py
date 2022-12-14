@@ -59,7 +59,11 @@ class PodRacer:
             deviation = math.remainder(
                 cmath.phase(self.velocity) - cmath.phase(desired), math.pi
             )
-            print(f"{self.name}> deviation:", int(round(math.degrees(abs(deviation)))), file=sys.stderr)
+            print(
+                f"{self.name}> deviation:",
+                int(round(math.degrees(abs(deviation)))),
+                file=sys.stderr,
+            )
             if abs(deviation) > math.pi / 3:
                 thrust = 0
 

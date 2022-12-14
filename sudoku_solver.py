@@ -102,8 +102,8 @@ def sudo_show(flatline):
     sep = "+".join(["-" * n] * n)
     for i in range(n):
         for j in range(n):
-            offset = (i * n + j) * n**2
-            print(fmt % tuple(flatline[offset : offset + n**2]))
+            offset = (i * n + j) * n ** 2
+            print(fmt % tuple(flatline[offset : offset + n ** 2]))
         if i != n - 1:
             print(sep)
 
