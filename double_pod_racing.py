@@ -3,7 +3,8 @@ from typing import Union
 import math
 import cmath
 import sys
-from collections import namedtuple, deque
+from collections import namedtuple, deque, Iterable
+from sklearn.linear_model import LinearRegression
 
 
 CP_RADIUS = 600
@@ -22,9 +23,11 @@ class PodRacer:
     def __init__(self, name, pod: Pod, checkpoints: list[Coord]) -> None:
         self.name = name
         self.speed_trace = deque(maxlen=4)
+        self.position = None
         self.update(pod, checkpoints)
 
     def update(self, pod: Pod, checkpoints: list[Coord]) -> None:
+        self.last_position = self.position
         self.position = complex(pod.x, pod.y)
         self.velocity = complex(pod.vx, pod.vy)
         self.speed_trace.append(int(round(abs(self.velocity))))
@@ -35,7 +38,7 @@ class PodRacer:
         self.target = self.cp
 
         self.target, self.thurst = self.drift_towards_target()
-        self.correct_rotation()
+        self.target = self.correct_rotation()
 
     def touch(self, target: complex) -> complex:
         """Will barely touch the checkpoint"""
@@ -44,36 +47,31 @@ class PodRacer:
         return target - touch_delta
 
     def drift_towards_target(self) -> tuple[complex, int]:
-
-        distance = abs(self.position - self.cp)
         thrust = 100
         target = self.cp
 
-        print("sum", sum(self.speed_trace), file=sys.stderr)
-
+        distance = abs(self.position - self.cp)
         if distance <= sum(self.speed_trace):
+            print(f"{self.name}> velo sum", sum(self.speed_trace), file=sys.stderr)
 
             target = self.next_cp
-
-            desired = self.next_cp - self.position
-            deviation = math.remainder(cmath.phase(self.velocity) - cmath.phase(desired), math.pi)
-            print(f"{self.name}>", math.degrees(abs(deviation)), file=sys.stderr)
+            desired = self.next_cp - self.cp
+            deviation = math.remainder(
+                cmath.phase(self.velocity) - cmath.phase(desired), math.pi
+            )
+            print(f"{self.name}> deviation:", int(round(math.degrees(abs(deviation)))), file=sys.stderr)
             if abs(deviation) > math.pi / 3:
                 thrust = 0
 
-
         return target, thrust
 
-    def correct_rotation(self):
+    def correct_rotation(self) -> complex:
         actual = self.velocity
         desired = self.target - self.position
         deviation = math.remainder(cmath.phase(actual) - cmath.phase(desired), cmath.pi)
+        rotate = cmath.rect(1, -deviation / 3)
 
-        # print(f"Dev: {round(math.degrees(deviation))}", file=sys.stderr)
-
-        rotate = cmath.rect(1, -deviation / 4)
-        self.target = desired * rotate + self.position  # apply correction
-
+        return desired * rotate + self.position
 
     def break_near_target(self, thrust: int) -> Union[int, str]:
         """apply braking strategy based on distance to target"""
@@ -106,12 +104,12 @@ class PodRacer:
         """lame predictor"""
         return self.position + self.velocity
 
-    def defend_on_collision(self, opponent: PodRacer):
-        future_dist = int(round(abs(self.next_position - opponent.next_position)))
-        if future_dist < 1200:
-            print(self.name, future_dist, "m from", opponent.name, file=sys.stderr)
-        if future_dist < 800:
-            self.thurst = "SHIELD"
+    def defend_on_collision(self, opponents: Iterable[PodRacer]):
+        for opp in opponents:
+            future_dist = int(round(abs(self.next_position - opp.next_position)))
+            if future_dist <= 900:
+                self.thurst = "SHIELD"
+                return
 
     def __str__(self):
         return (
@@ -202,28 +200,33 @@ def main():
 
     # first turn
     pods = read_all_pods()
-    first_me = PodRacer(
-        "me1", pods["me_first"], layout["checkpoints"]
-    )
-    second_me = PodRacer(
-        "me2", pods["me_second"], layout["checkpoints"]
-    )
+    me1 = PodRacer("me1", pods["me_first"], layout["checkpoints"])
+    me2 = PodRacer("me2", pods["me_second"], layout["checkpoints"])
+    him1 = PodRacer("him1", pods["him_first"], layout["checkpoints"])
+    him2 = PodRacer("him2", pods["him_second"], layout["checkpoints"])
 
-    first_me.thurst = 0
-    second_me.thurst = "BOOST"
-    print(first_me)
-    print(second_me)
+    print(me1)
+    print(me2)
 
     while True:
         pods = read_all_pods()
-        first_me.update(pods["me_first"], layout["checkpoints"])
-        second_me.update(pods["me_second"], layout["checkpoints"])
+        me1.update(pods["me_first"], layout["checkpoints"])
+        me2.update(pods["me_second"], layout["checkpoints"])
 
-        print(repr(first_me), file=sys.stderr)
-        print(repr(second_me), file=sys.stderr)
+        him1.update(pods["him_first"], layout["checkpoints"])
+        him2.update(pods["him_second"], layout["checkpoints"])
 
-        print(first_me)
-        print(second_me)
+        me1.defend_on_collision((him1, him2))
+        me2.defend_on_collision((him2, him1))
+
+        if isinstance(me2.thurst, int):
+            me2.thurst = me2.thurst // 2
+
+        print(repr(me1), file=sys.stderr)
+        print(repr(me2), file=sys.stderr)
+
+        print(me1)
+        print(me2)
 
 
 if __name__ == "__main__":
