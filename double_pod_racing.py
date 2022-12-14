@@ -17,6 +17,7 @@ Pod = namedtuple("Pod", ["x", "y", "vx", "vy", "angle", "cpid"])
 def clamp(value: float, left: float, right: float):
     return max(left, min(value, right))
 
+
 class PodRacer:
     def __init__(self, name, pod: Pod, checkpoints: list[Coord]) -> None:
         self.name = name
@@ -51,12 +52,8 @@ class PodRacer:
         thrust = 100
         distance = abs(self.position - self.cp)
 
-        target_dev = remainder(
-            phase(target - self.position) - self.v_angle, pi
-        )
-        next_cp_dev = remainder(
-            self.v_angle - phase(self.next_cp - self.cp), pi
-        )
+        target_dev = remainder(phase(target - self.position) - self.v_angle, pi)
+        next_cp_dev = remainder(self.v_angle - phase(self.next_cp - self.cp), pi)
 
         if distance <= sum(self.speed_trace):
             if self.speed_trace[-1] > 300:
@@ -73,9 +70,7 @@ class PodRacer:
         return target, thrust
 
     def correct_rotation(self) -> complex:
-        target_dev = remainder(
-            phase(self.target - self.position) - self.v_angle, pi
-        )
+        target_dev = remainder(phase(self.target - self.position) - self.v_angle, pi)
         desired = self.target - self.position
         rotate = rect(1, target_dev / 4)
         return desired * rotate + self.position
@@ -92,7 +87,7 @@ class PodRacer:
 
         t_angle = phase(self.target - self.position)
         dev = t_angle - self.angle
-        rot = clamp(dev, -pi/10, pi/10)
+        rot = clamp(dev, -pi / 10, pi / 10)
 
         acc = rect(thrust, self.angle + rot)
         movement = self.velocity + acc
@@ -106,9 +101,7 @@ class PodRacer:
             speed_diff = abs(self.speed_trace[-1] - opp.speed_trace[-1])
             collision_angle = remainder(self.v_angle - opp.v_angle, pi)
 
-            if next_dist <= 900 and (
-                abs(collision_angle) > pi / 4 or speed_diff > 250
-            ):
+            if next_dist <= 900 and (abs(collision_angle) > pi / 4 or speed_diff > 250):
                 print(
                     f"--- {self.name} vs {opp.name} => {next_dist} ---", file=sys.stderr
                 )
@@ -136,7 +129,10 @@ class PodRacer:
         distance = abs(self.position - self.cp)
         next_distance = abs(self.next_position - self.cp)
 
-        print(f"closing? {last_distance - distance} > {distance - next_distance}", file=sys.stderr)
+        print(
+            f"closing? {last_distance - distance} > {distance - next_distance}",
+            file=sys.stderr,
+        )
 
         return True
 
