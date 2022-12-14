@@ -108,7 +108,6 @@ class PodRacer:
                 self.target = complex(x, y)
                 return
 
-
     def can_boost(self) -> bool:
         if self.has_boost:
             target_dev = math.remainder(
