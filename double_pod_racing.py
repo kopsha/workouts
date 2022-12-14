@@ -45,8 +45,6 @@ class PodRacer:
     def drift_towards(self, target) -> tuple[complex, int]:
         thrust = 100
         distance = abs(self.position - self.cp)
-        # print(f"--- {self.name} ---", file=sys.stderr)
-        # print(f"dist: {int(distance)}, velo: {sum(self.speed_trace)}", file=sys.stderr)
 
         target_dev = math.remainder(
             cmath.phase(target - self.position) - self.v_angle, cmath.pi
@@ -59,12 +57,12 @@ class PodRacer:
             if self.speed_trace[-1] > 300:
                 # change target sooner to allow rotation
                 target = self.next_cp
-            if abs(next_cp_dev) > math.pi / 2:
+            if abs(next_cp_dev) > cmath.pi / 2:
                 thrust = 0
         else:
-            if target_dev > 3 * math.pi / 4:
-                thrust = 0
-            elif target_dev > math.pi / 2:
+            if target_dev > 3 * cmath.pi / 4:
+                thrust = 0 if self.speed_trace[-1] > 250 else 33
+            elif target_dev > cmath.pi / 2:
                 thrust = 66
 
         return target, thrust
@@ -79,23 +77,37 @@ class PodRacer:
 
     @property
     def next_position(self):
-        # TODO: find a better predictor
         return self.position + self.velocity
 
     def defend_on_collision(self, opponents: Iterable[PodRacer]):
         for opp in opponents:
-            # last_dist = int(round(abs(self.last_position - opp.last_position)))
-            # dist = int(round(abs(self.position - opp.position)))
             next_dist = int(round(abs(self.next_position - opp.next_position)))
             speed_diff = abs(self.speed_trace[-1] - opp.speed_trace[-1])
             collision_angle = self.v_angle - opp.v_angle
 
-            if next_dist <= 900 and (abs(collision_angle) > cmath.pi/4 or speed_diff > 250):
-                print(f"--- {self.name} vs {opp.name} => {next_dist} ---", file=sys.stderr)
-                print(f"{self.speed_trace[-1]}m/s vs {opp.speed_trace[-1]} m/s", file=sys.stderr)
-                print(f"Collision angle: {int(math.degrees(collision_angle))}", file=sys.stderr)
+            if next_dist <= 900 and (
+                abs(collision_angle) > cmath.pi / 4 or speed_diff > 250
+            ):
+                print(
+                    f"--- {self.name} vs {opp.name} => {next_dist} ---", file=sys.stderr
+                )
+                print(
+                    f"{self.speed_trace[-1]}m/s vs {opp.speed_trace[-1]} m/s",
+                    file=sys.stderr,
+                )
+                print(
+                    f"Collision angle: {int(math.degrees(collision_angle))}",
+                    file=sys.stderr,
+                )
                 self.thurst = "SHIELD"
                 return
+            elif next_dist <= 1800 and collision_angle <= cmath.pi / 5:
+                # move in-front of opponent
+                x = (self.target.real * 2 + opp.position.real) / 3
+                y = (self.target.imag * 2 + opp.position.imag) / 3
+                self.target = complex(x, y)
+                return
+
 
     def can_boost(self) -> bool:
         if self.has_boost:
@@ -176,20 +188,6 @@ def read_all_pods() -> dict:
 
 def to_coords(z):
     return int(round(z.real)), int(round(z.imag))
-
-
-def steer_towards_opponent(target, position, opponent, last_opponent):
-    # TODO: rework this
-    ph1 = cmath.phase(target - position)
-    ph2 = cmath.phase(opponent - last_opponent)
-    opp_angle = abs(math.remainder(ph1 - ph2, cmath.pi))
-
-    opponent_dist = abs(position - opponent)
-    if opp_angle < cmath.pi / 5 and opponent_dist <= CP_RADIUS * 3:
-        x = (target.real * 2 + opponent.real) / 3
-        y = (target.imag * 2 + opponent.imag) / 3
-        target = complex(x, y)
-    return target
 
 
 def main():
