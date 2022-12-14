@@ -1,10 +1,9 @@
 from __future__ import annotations
-from typing import Union
 import math
 import cmath
 import sys
-from collections import namedtuple, deque, Iterable
-from sklearn.linear_model import LinearRegression
+from collections import namedtuple, deque
+from typing import Iterable
 
 
 CP_RADIUS = 600
@@ -15,29 +14,26 @@ Coord = namedtuple("Coord", ["x", "y"])
 Pod = namedtuple("Pod", ["x", "y", "vx", "vy", "angle", "cpid"])
 
 
-def clamp(x, left, right):
-    return max(min(left, x), right)
-
-
 class PodRacer:
     def __init__(self, name, pod: Pod, checkpoints: list[Coord]) -> None:
         self.name = name
-        self.speed_trace = deque(maxlen=4)
+        self.has_boost = True
+        self.speed_trace = deque(maxlen=5)
         self.position = None
         self.update(pod, checkpoints)
 
     def update(self, pod: Pod, checkpoints: list[Coord]) -> None:
         self.last_position = self.position
         self.position = complex(pod.x, pod.y)
+
         self.velocity = complex(pod.vx, pod.vy)
         self.speed_trace.append(int(round(abs(self.velocity))))
-        self.angle = math.radians(pod.angle)
+        self.v_angle = cmath.phase(self.velocity)
 
+        self.cpid = pod.cpid
         self.cp = complex(*checkpoints[pod.cpid])
         self.next_cp = complex(*checkpoints[(pod.cpid + 1) % len(checkpoints)])
-        self.target = self.cp
-
-        self.target, self.thurst = self.drift_towards_target()
+        self.target, self.thurst = self.drift_towards(self.cp)
         self.target = self.correct_rotation()
 
     def touch(self, target: complex) -> complex:
@@ -46,62 +42,34 @@ class PodRacer:
         touch_delta = cmath.rect(CP_GRAVITY - CP_RADIUS, cmath.phase(along))
         return target - touch_delta
 
-    def drift_towards_target(self) -> tuple[complex, int]:
+    def drift_towards(self, target) -> tuple[complex, int]:
         thrust = 100
-        target = self.cp
-
         distance = abs(self.position - self.cp)
-        if distance <= sum(self.speed_trace):
-            print(f"{self.name}> velo sum", sum(self.speed_trace), file=sys.stderr)
+        # print(f"--- {self.name} ---", file=sys.stderr)
+        # print(f"dist: {int(distance)}, velo: {sum(self.speed_trace)}", file=sys.stderr)
 
-            target = self.next_cp
-            desired = self.next_cp - self.cp
-            deviation = math.remainder(
-                cmath.phase(self.velocity) - cmath.phase(desired), math.pi
-            )
-            print(
-                f"{self.name}> deviation:",
-                int(round(math.degrees(abs(deviation)))),
-                file=sys.stderr,
-            )
-            if abs(deviation) > math.pi / 3:
+        target_dev = math.remainder(cmath.phase(target - self.position) - self.v_angle, cmath.pi)
+        next_cp_dev = math.remainder(self.v_angle - cmath.phase(self.next_cp - self.cp), cmath.pi)
+
+        if distance <= sum(self.speed_trace):
+            if self.speed_trace[-1] > 300:
+                # change target sooner to allow rotation
+                target = self.next_cp
+            if abs(next_cp_dev) > math.pi / 2:
                 thrust = 0
+        else:
+            if target_dev > 3*math.pi / 4:
+                thrust = 0
+            elif target_dev > math.pi / 2:
+                thrust = 66
 
         return target, thrust
 
     def correct_rotation(self) -> complex:
-        actual = self.velocity
+        target_dev = math.remainder(cmath.phase(self.target - self.position) - self.v_angle, cmath.pi)
         desired = self.target - self.position
-        deviation = math.remainder(cmath.phase(actual) - cmath.phase(desired), cmath.pi)
-        rotate = cmath.rect(1, -deviation / 3)
-
+        rotate = cmath.rect(1, target_dev / 3)
         return desired * rotate + self.position
-
-    def break_near_target(self, thrust: int) -> Union[int, str]:
-        """apply braking strategy based on distance to target"""
-        distance = abs(self.position - self.target)
-        if abs(self.velocity) > TURN_SPEED and distance < CP_RADIUS * 2:
-            new_thrust = 0
-        else:
-            new_thrust = thrust
-
-        return new_thrust
-
-    def break_on_large_angles(self, thrust: Union[int, str]) -> Union[int, str]:
-        """apply braking strategy based on angle to target"""
-        target_angle = cmath.phase(self.target - self.position)
-        if target_angle < 0:
-            target_angle = 2 * cmath.pi + target_angle
-
-        actual = abs(target_angle - self.angle)
-        if actual < cmath.pi / 4:
-            thrust = thrust
-        elif actual < cmath.pi / 2:
-            thrust = 66
-        else:
-            thrust = 0
-
-        return thrust
 
     @property
     def next_position(self):
@@ -110,10 +78,26 @@ class PodRacer:
 
     def defend_on_collision(self, opponents: Iterable[PodRacer]):
         for opp in opponents:
+            # TODO: only large angles
             future_dist = int(round(abs(self.next_position - opp.next_position)))
             if future_dist <= 900:
                 self.thurst = "SHIELD"
                 return
+
+    def can_boost(self, layout: dict) -> bool:
+        if self.has_boost:
+            # if self.cpid == layout["longest"]:
+            target_dev = math.remainder(cmath.phase(self.target - self.position) - self.v_angle, cmath.pi)
+            distance = abs(self.position - self.cp)
+            if abs(target_dev) < cmath.pi / 36 and distance > 4000:
+                return True
+        return False
+
+    def boost(self) -> None:
+        if self.has_boost:
+            self.thurst = "BOOST"
+            self.has_boost = False
+
 
     def __str__(self):
         return (
@@ -123,7 +107,11 @@ class PodRacer:
         )
 
     def __repr__(self):
-        return f"D:{int(round(abs(self.cp - self.position))):4} m V:{int(round(abs(self.velocity))):4} m/s O:{self.thurst:4}"
+        return (
+            f"D:{int(round(abs(self.cp - self.position))):4} m "
+            f"V:{int(round(abs(self.velocity))):4} m/s O:{self.thurst:4} "
+            f"has boost: {self.has_boost}"
+        )
 
 
 def read_race_layout() -> dict:
@@ -147,6 +135,15 @@ def read_race_layout() -> dict:
     print(race_layout, file=sys.stderr)
 
     return race_layout
+
+
+def find_longest_segment(checkpoints):
+    distances = [
+        int(math.dist(z1, z2))
+        for z1, z2 in zip([checkpoints[-1]] + checkpoints[:-1], checkpoints)
+    ]
+    longest = max(distances)
+    return distances.index(longest)
 
 
 def read_all_pods() -> dict:
@@ -191,16 +188,9 @@ def steer_towards_opponent(target, position, opponent, last_opponent):
     return target
 
 
-def boost_on_long_distance(thrust, c_dist, c_angle, c_index):
-    # TODO: rework this
-    if c_dist > 5000 and abs(c_angle) < 5:
-        thrust = "BOOST"
-
-    return thrust
-
-
 def main():
     layout = read_race_layout()
+    layout["longest"] = find_longest_segment(layout["checkpoints"])
 
     # first turn
     pods = read_all_pods()
@@ -220,11 +210,16 @@ def main():
         him1.update(pods["him_first"], layout["checkpoints"])
         him2.update(pods["him_second"], layout["checkpoints"])
 
-        me1.defend_on_collision((him1, him2))
-        me2.defend_on_collision((him2, him1))
+        if me1.can_boost(layout):
+            me1.boost()
+        elif me2.can_boost(layout):
+            me2.boost()
 
-        if isinstance(me2.thurst, int):
-            me2.thurst = me2.thurst // 2
+        # me1.defend_on_collision((him1, him2))
+        # me2.defend_on_collision((him2, him1))
+
+        # if isinstance(me2.thurst, int):
+        #     me2.thurst = me2.thurst // 2
 
         print(repr(me1), file=sys.stderr)
         print(repr(me2), file=sys.stderr)
