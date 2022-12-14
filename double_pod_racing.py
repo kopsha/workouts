@@ -61,6 +61,8 @@ class PodRacer:
                 target = self.next_cp
             if abs(next_cp_dev) > pi / 2:
                 thrust = 0
+            elif abs(next_cp_dev) > pi / 4:
+                thrust = 50
         else:
             if target_dev > 3 * pi / 4:
                 thrust = 0 if self.speed_trace[-1] > 250 else 33
@@ -130,7 +132,11 @@ class PodRacer:
         next_distance = abs(self.next_position - self.cp)
 
         print(
-            f"closing? {last_distance - distance} > {distance - next_distance}",
+            f"derivative? {last_distance - distance} > {distance - next_distance}",
+            file=sys.stderr,
+        )
+        print(
+            f"closing? {last_distance} > {distance} > {next_distance}",
             file=sys.stderr,
         )
 
