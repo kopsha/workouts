@@ -48,8 +48,12 @@ class PodRacer:
         # print(f"--- {self.name} ---", file=sys.stderr)
         # print(f"dist: {int(distance)}, velo: {sum(self.speed_trace)}", file=sys.stderr)
 
-        target_dev = math.remainder(cmath.phase(target - self.position) - self.v_angle, cmath.pi)
-        next_cp_dev = math.remainder(self.v_angle - cmath.phase(self.next_cp - self.cp), cmath.pi)
+        target_dev = math.remainder(
+            cmath.phase(target - self.position) - self.v_angle, cmath.pi
+        )
+        next_cp_dev = math.remainder(
+            self.v_angle - cmath.phase(self.next_cp - self.cp), cmath.pi
+        )
 
         if distance <= sum(self.speed_trace):
             if self.speed_trace[-1] > 300:
@@ -58,7 +62,7 @@ class PodRacer:
             if abs(next_cp_dev) > math.pi / 2:
                 thrust = 0
         else:
-            if target_dev > 3*math.pi / 4:
+            if target_dev > 3 * math.pi / 4:
                 thrust = 0
             elif target_dev > math.pi / 2:
                 thrust = 66
@@ -66,7 +70,9 @@ class PodRacer:
         return target, thrust
 
     def correct_rotation(self) -> complex:
-        target_dev = math.remainder(cmath.phase(self.target - self.position) - self.v_angle, cmath.pi)
+        target_dev = math.remainder(
+            cmath.phase(self.target - self.position) - self.v_angle, cmath.pi
+        )
         desired = self.target - self.position
         rotate = cmath.rect(1, target_dev / 3)
         return desired * rotate + self.position
@@ -87,7 +93,9 @@ class PodRacer:
     def can_boost(self, layout: dict) -> bool:
         if self.has_boost:
             # if self.cpid == layout["longest"]:
-            target_dev = math.remainder(cmath.phase(self.target - self.position) - self.v_angle, cmath.pi)
+            target_dev = math.remainder(
+                cmath.phase(self.target - self.position) - self.v_angle, cmath.pi
+            )
             distance = abs(self.position - self.cp)
             if abs(target_dev) < cmath.pi / 36 and distance > 4000:
                 return True
@@ -97,7 +105,6 @@ class PodRacer:
         if self.has_boost:
             self.thurst = "BOOST"
             self.has_boost = False
-
 
     def __str__(self):
         return (
