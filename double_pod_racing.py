@@ -74,30 +74,36 @@ class PodRacer:
             cmath.phase(self.target - self.position) - self.v_angle, cmath.pi
         )
         desired = self.target - self.position
-        rotate = cmath.rect(1, target_dev / 3)
+        rotate = cmath.rect(1, target_dev / 4)
         return desired * rotate + self.position
 
     @property
     def next_position(self):
-        """lame predictor"""
+        # TODO: find a better predictor
         return self.position + self.velocity
 
     def defend_on_collision(self, opponents: Iterable[PodRacer]):
         for opp in opponents:
-            # TODO: only large angles
-            future_dist = int(round(abs(self.next_position - opp.next_position)))
-            if future_dist <= 900:
+            # last_dist = int(round(abs(self.last_position - opp.last_position)))
+            # dist = int(round(abs(self.position - opp.position)))
+            next_dist = int(round(abs(self.next_position - opp.next_position)))
+            speed_diff = abs(self.speed_trace[-1] - opp.speed_trace[-1])
+            collision_angle = self.v_angle - opp.v_angle
+
+            if next_dist <= 900 and (abs(collision_angle) > cmath.pi/4 or speed_diff > 250):
+                print(f"--- {self.name} vs {opp.name} => {next_dist} ---", file=sys.stderr)
+                print(f"{self.speed_trace[-1]}m/s vs {opp.speed_trace[-1]} m/s", file=sys.stderr)
+                print(f"Collision angle: {int(math.degrees(collision_angle))}", file=sys.stderr)
                 self.thurst = "SHIELD"
                 return
 
-    def can_boost(self, layout: dict) -> bool:
+    def can_boost(self) -> bool:
         if self.has_boost:
-            # if self.cpid == layout["longest"]:
             target_dev = math.remainder(
                 cmath.phase(self.target - self.position) - self.v_angle, cmath.pi
             )
             distance = abs(self.position - self.cp)
-            if abs(target_dev) < cmath.pi / 36 and distance > 4000:
+            if abs(target_dev) < cmath.pi / 36 and distance > 4500:
                 return True
         return False
 
@@ -144,15 +150,6 @@ def read_race_layout() -> dict:
     return race_layout
 
 
-def find_longest_segment(checkpoints):
-    distances = [
-        int(math.dist(z1, z2))
-        for z1, z2 in zip([checkpoints[-1]] + checkpoints[:-1], checkpoints)
-    ]
-    longest = max(distances)
-    return distances.index(longest)
-
-
 def read_all_pods() -> dict:
     """
     Read input for one game turn
@@ -197,7 +194,6 @@ def steer_towards_opponent(target, position, opponent, last_opponent):
 
 def main():
     layout = read_race_layout()
-    layout["longest"] = find_longest_segment(layout["checkpoints"])
 
     # first turn
     pods = read_all_pods()
@@ -209,6 +205,7 @@ def main():
     print(me1)
     print(me2)
 
+    hold_boost = 0
     while True:
         pods = read_all_pods()
         me1.update(pods["me_first"], layout["checkpoints"])
@@ -217,16 +214,18 @@ def main():
         him1.update(pods["him_first"], layout["checkpoints"])
         him2.update(pods["him_second"], layout["checkpoints"])
 
-        if me1.can_boost(layout):
-            me1.boost()
-        elif me2.can_boost(layout):
-            me2.boost()
+        if hold_boost > 0:
+            hold_boost -= 1
+        else:
+            if me1.can_boost():
+                me1.boost()
+                hold_boost = 7
+            elif me2.can_boost():
+                me2.boost()
+                hold_boost = 7
 
-        # me1.defend_on_collision((him1, him2))
-        # me2.defend_on_collision((him2, him1))
-
-        # if isinstance(me2.thurst, int):
-        #     me2.thurst = me2.thurst // 2
+        me1.defend_on_collision((him1, him2))
+        me2.defend_on_collision((him2, him1))
 
         print(repr(me1), file=sys.stderr)
         print(repr(me2), file=sys.stderr)
