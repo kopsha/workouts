@@ -255,8 +255,8 @@ def cubic(a: float, b: float, c: float, d: float, t: float) -> float:
     rc = (
         (1 - t) ** 3 * a
         + 3 * (1 - t) ** 2 * t * b
-        + 3 * (1 - t) * t**2 * c
-        + t**3 * d
+        + 3 * (1 - t) * t ** 2 * c
+        + t ** 3 * d
     )
     return rc
 
@@ -264,7 +264,7 @@ def cubic(a: float, b: float, c: float, d: float, t: float) -> float:
 def cubic_bezier(a: Coord, b: Coord, c: Coord, d: Coord) -> list[Coord]:
     curve = [
         Coord(cubic(a.x, b.x, c.x, d.x, t), cubic(a.y, b.y, c.y, d.y, t))
-        for t in np.linspace(0, 1, 100)
+        for t in np.linspace(0, 1, 34)
     ]
     return curve
 
@@ -352,16 +352,8 @@ class LayoutPainter(PicassoEngine):
             aside = Coord(point.x + 89, point.y + 55)
             self.canvas.blit(labelSurface, aside)
 
-        p0 = points[0]
-        p1 = points[1]
-        p2 = points[2]
-        for t in np.linspace(0, 1, 100):
-            q0 = lerp(p0, p1, t)
-            q1 = lerp(p1, p2, t)
-            q = lerp(q0, q1, t)
-
-            pygame.draw.circle(self.canvas, GRAY, q, radius=10)
-
+        curve = cubic_bezier(*points[0:4])
+        pygame.draw.lines(self.canvas, GRAY, closed=False, points=curve, width=13)
 
 def bezier_main():
     with LayoutPainter() as engine:
