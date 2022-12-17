@@ -366,9 +366,13 @@ class LayoutPainter(PicassoEngine):
         cps = list()
         fcps = list()
 
-        for left, right, tow in zip(layout, layout[1:] + layout[:1], layout[2:] + layout[:2]):
-          
-            print(layout.index(left), "->", layout.index(right), "->", layout.index(tow))
+        for left, right, tow in zip(
+            layout, layout[1:] + layout[:1], layout[2:] + layout[:2]
+        ):
+
+            print(
+                layout.index(left), "->", layout.index(right), "->", layout.index(tow)
+            )
 
             zcp, mirror_zcp = find_control_points(left, right, tow)
             cp, mirror_cp = Coord(*to_coords(zcp)), Coord(*to_coords(mirror_zcp))
@@ -377,11 +381,9 @@ class LayoutPainter(PicassoEngine):
             cps.append(last_mirror_cp)
 
             curve = cubic_bezier(left, last_mirror_cp, cp, right)
-            pygame.draw.lines(
-                self.canvas, GRAY, closed=False, points=curve, width=13
-            )
+            pygame.draw.lines(self.canvas, GRAY, closed=False, points=curve, width=13)
             last_mirror_cp = mirror_cp
-        
+
         self.mark_control_points(fcps)
         self.mark_control_points(cps, prefix="__")
 
@@ -407,9 +409,11 @@ def find_control_points(pos: Coord, left: Coord, right: Coord):
 
     target_angle = phase(target - position)
     towards_angle = phase(towards - target)
-    rev_half = pi - (target_angle - towards_angle)/2
+    rev_half = pi - (target_angle - towards_angle) / 2
 
-    print(int(degrees(target_angle)), int(degrees(towards_angle)), int(degrees(rev_half)))
+    print(
+        int(degrees(target_angle)), int(degrees(towards_angle)), int(degrees(rev_half))
+    )
 
     mid_target = (target - position) / 4
     if rev_half > pi:
