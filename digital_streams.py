@@ -28,12 +28,12 @@ def index_of(start: int):
     # count space for all numbers with less than size digits
     pos = 0
     for i in range(len(digits) - 1):
-        multi = 9 * 10 ** i
+        multi = 9 * 10**i
         this = (i + 1) * multi
         pos += this
 
     i += 1
-    multi = start - 10 ** i
+    multi = start - 10**i
     this = (i + 1) * multi
     pos += this
 
