@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import pygame
 
 from picasso import PicassoEngine
-from pod_utils import find_control_points, to_coords, cubic_bezier, Coord, BEZIER_DETAIL
+from pod_utils import build_optimal_segments, build_bezier_path, pick_control_points, to_coords, cubic_bezier, Coord, BEZIER_DETAIL
 
 
 BLACK = pygame.Color(0, 0, 0)
@@ -84,59 +86,25 @@ class RacelinePainter(PicassoEngine):
             bye = pygame.event.Event(pygame.QUIT)
             pygame.event.post(bye)
         elif event.key == pygame.K_RIGHT:
-            self.posi = (self.posi + 1) % len(self.curve)
-            cpi = self.posi // (BEZIER_DETAIL - 2)
-            self.cp = self.layout[cpi]
-            self.cp = self.layout[(cpi + 1) % len(self.layout)]
-            self.renew_curve(self.curve[self.posi], self.cp, self.next_cp)
+            self.posi += 1
+            self.update_live_curve()
             print(f"--> {self.posi} / {len(self.curve)}")
+
         elif event.key == pygame.K_LEFT:
-            self.posi = (self.posi - 1) % len(self.curve)
-            self.renew_curve(self.curve[self.posi], self.cp, self.next_cp)
-            print(f"<-- {self.posi} / {len(self.curve)}")
+            self.posi -= 1
+            self.update_live_curve()
+            print(f"--> {self.posi} / {len(self.curve)}")
+
+    def update_live_curve(self):
+        self.posi %= len(self.curve)
+        cpi = 1 + self.posi // (BEZIER_DETAIL - 1)
+        self.live_curve = self.curve[self.posi:1 + cpi*(BEZIER_DETAIL - 1)]
 
     def post_init(self):
         self.font = pygame.font.SysFont("monospace", 168)
+        self.segments = build_optimal_segments(self.layout)
+        self.curve = build_bezier_path(self.segments)
 
-        self.segments = list()
-
-        # find all control points
-        last_mirror_cp = self.layout[0]
-        for left, right, tow in zip(
-            self.layout,
-            self.layout[1:] + self.layout[:1],
-            self.layout[2:] + self.layout[:2],
-        ):
-            position = complex(*left)
-            target = complex(*right)
-            towards = complex(*tow)
-            zcp, mirror_zcp = find_control_points(position, target, towards)
-            cp, mirror_cp = Coord(*to_coords(zcp)), Coord(*to_coords(mirror_zcp))
-
-            self.segments.append((left, last_mirror_cp, cp, right))
-            last_mirror_cp = mirror_cp
-
-        # add missing control point for start position
-        first_corrected = (
-            self.segments[0][0],
-            last_mirror_cp,
-            self.segments[0][2],
-            self.segments[0][3],
-        )
-        self.segments[0] = first_corrected
-
-        # render curve
-        for a, b, c, d in self.segments:
-            curve = cubic_bezier(a, b, c, d)
-            self.curve.extend(curve[1:-1])
-
-    def renew_curve(self, position, target, towards):
-        pos = complex(*position)
-        tar = complex(*target)
-        tow = complex(*towards)
-        zcp, mirror_zcp = find_control_points(pos, tar, tow)
-        cp, mirror_cp = Coord(*to_coords(zcp)), Coord(*to_coords(mirror_zcp))
-        self.live_curve = cubic_bezier(position, position, cp, target)
 
 
 def main():
