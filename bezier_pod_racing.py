@@ -221,6 +221,7 @@ def read_all_pods() -> dict:
 
 def main():
     layout = read_race_layout()
+    print(f"{layout=}", file=sys.stderr)
 
     # first turn
     pods = read_all_pods()

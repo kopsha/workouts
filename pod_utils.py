@@ -51,7 +51,9 @@ def cubic_bezier(a: Coord, b: Coord, c: Coord, d: Coord) -> list[Coord]:
     return curve
 
 
-def find_control_points(position: complex, target: complex, towards: complex) -> tuple[complex]:
+def find_control_points(
+    position: complex, target: complex, towards: complex
+) -> tuple[complex]:
 
     target_angle = phase(target - position)
     towards_angle = phase(towards - target)
@@ -64,5 +66,5 @@ def find_control_points(position: complex, target: complex, towards: complex) ->
     else:
         rel = mid_target * rect(1, rev_half)
         rel_opp = mid_target * rect(1, rev_half + pi)
-    
+
     return target - rel, target - rel_opp
