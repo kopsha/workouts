@@ -16,17 +16,18 @@ TURN_SPEED = 400
 Coord = namedtuple("Coord", ["x", "y"])
 Pod = namedtuple("Pod", ["x", "y", "vx", "vy", "angle", "cpid"])
 
+# ---- cut here ----
+
 
 class PodRacer:
     def __init__(self, name, pod: Pod, checkpoints: list[Coord]) -> None:
         self.name = name
         self.has_boost = True
         self.speed_trace = deque(maxlen=5)
-        self.position = None
         self.update(pod, checkpoints)
 
     def update(self, pod: Pod, checkpoints: list[Coord]) -> None:
-        self.last_position = self.position
+        self.last_position = getattr(self, "position", None)
         self.position = complex(pod.x, pod.y)
 
         self.velocity = complex(pod.vx, pod.vy)
@@ -122,24 +123,6 @@ class PodRacer:
                 y = (self.target.imag * 2 + opp.position.imag) / 3
                 self.target = complex(x, y)
                 return
-
-    def can_reach_checkpoint(self):
-        """a more accurate next position computation"""
-
-        last_distance = abs(self.last_position - self.cp)
-        distance = abs(self.position - self.cp)
-        next_distance = abs(self.next_position - self.cp)
-
-        print(
-            f"derivative? {last_distance - distance} > {distance - next_distance}",
-            file=sys.stderr,
-        )
-        print(
-            f"closing? {last_distance} > {distance} > {next_distance}",
-            file=sys.stderr,
-        )
-
-        return True
 
     def can_boost(self) -> bool:
         if self.has_boost:
@@ -260,9 +243,6 @@ def main():
         me1.defend_on_collision((him1, him2))
         me2.defend_on_collision((him2, him1))
 
-        me1.can_reach_checkpoint()
-        me2.can_reach_checkpoint()
-
         print(repr(me1), file=sys.stderr)
         print(repr(me2), file=sys.stderr)
 
@@ -272,3 +252,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+# ---- cut here ----
