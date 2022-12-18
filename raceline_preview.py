@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pygame
+from random import randint
 
 from picasso import PicassoEngine
 from pod_utils import (
@@ -56,8 +57,7 @@ class RacelinePainter(PicassoEngine):
             pygame.draw.lines(
                 self.canvas, GRAY, closed=False, points=self.curve, width=13
             )
-            position = self.curve[self.posi]
-            pygame.draw.circle(self.canvas, WHITE, position, radius=100)
+            pygame.draw.circle(self.canvas, WHITE, self.position, radius=100)
 
         if len(self.live_curve) > 1:
             pygame.draw.lines(
@@ -95,23 +95,25 @@ class RacelinePainter(PicassoEngine):
             pygame.event.post(bye)
         elif event.key == pygame.K_RIGHT:
             self.posi += 1
-            self.update_live_curve()
+            self.position = self.pick_position_around()
             print(f"--> {self.posi} / {len(self.curve)}")
 
         elif event.key == pygame.K_LEFT:
             self.posi -= 1
-            self.update_live_curve()
+            self.position = self.pick_position_around()
             print(f"--> {self.posi} / {len(self.curve)}")
 
-    def update_live_curve(self):
+    def pick_position_around(self):
         self.posi %= len(self.curve)
-        cpi = 1 + self.posi // (BEZIER_DETAIL - 1)
-        self.live_curve = self.curve[self.posi : 1 + cpi * (BEZIER_DETAIL - 1)]
+        dx, dy = randint(5, 233), randint(5, 233)
+        on_path = self.curve[self.posi]
+        return Coord(on_path.x + dx, on_path.y + dy)
 
     def post_init(self):
         self.font = pygame.font.SysFont("monospace", 168)
         self.segments = build_optimal_segments(self.layout)
         self.curve = build_bezier_path(self.segments)
+        self.position = self.curve[0]
 
 
 def main():

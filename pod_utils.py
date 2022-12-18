@@ -73,7 +73,7 @@ def pick_control_points(
     return target - rel, target - rel_opp
 
 
-def build_optimal_segments(checkpoints: list[Coord]):
+def build_optimal_segments(checkpoints: list[Coord]) -> list[tuple[Coord]]:
     segments = list()
     assert checkpoints
 
@@ -105,7 +105,7 @@ def build_optimal_segments(checkpoints: list[Coord]):
     return segments
 
 
-def build_bezier_path(segments):
+def build_bezier_path(segments) -> list[Coord]:
     path = list()
     for a, b, c, d in segments:
         curve = cubic_bezier(a, b, c, d)
