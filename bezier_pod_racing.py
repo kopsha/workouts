@@ -11,6 +11,7 @@ from pod_utils import clamp
 CP_RADIUS = 600
 CP_GRAVITY = CP_RADIUS // 10
 TURN_SPEED = 400
+HOLD_DURATION = 7
 
 
 Coord = namedtuple("Coord", ["x", "y"])
@@ -228,17 +229,22 @@ def main():
         him2.update(pods["him_second"], layout["checkpoints"])
 
         # TODO:
-        # - evaluate, can we reach the target ?
-        # - avoid team collisions too
+        # - evaluate, can we reach the target [postponed]
+        # - avoid team collisions
+        # - bezier racing lines for fastest target reach
+        # - evaluate race positions
+        # - avoid obstacles strategy
+        # - add bullying strategy
+
         if hold_boost > 0:
             hold_boost -= 1
         else:
             if me1.can_boost():
                 me1.boost()
-                hold_boost = 7
+                hold_boost = HOLD_DURATION
             elif me2.can_boost():
                 me2.boost()
-                hold_boost = 7
+                hold_boost = HOLD_DURATION
 
         me1.defend_on_collision((him1, him2))
         me2.defend_on_collision((him2, him1))
