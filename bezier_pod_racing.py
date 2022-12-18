@@ -28,7 +28,9 @@ class PodRacer:
 
     def update(self, pod: Pod, checkpoints: list[Coord]) -> None:
         self.last_position = getattr(self, "position", None)
-        self.last_mirror_control = getattr(self, "mirror_control", to_coords(self.position))
+        self.last_mirror_control = getattr(
+            self, "mirror_control", to_coords(self.position)
+        )
         self.position = complex(pod.x, pod.y)
 
         self.velocity = complex(pod.vx, pod.vy)
@@ -48,16 +50,21 @@ class PodRacer:
         along = self.position - target
         touch_delta = rect(CP_GRAVITY - CP_RADIUS, phase(along))
         return target - touch_delta
-    
-    def find_racing_line(self, checkpoint: complex, towards: complex) -> tuple[complex, int]:
+
+    def find_racing_line(
+        self, checkpoint: complex, towards: complex
+    ) -> tuple[complex, int]:
         thrust = 100
         target = checkpoint
 
-        control_point, mirror_control = find_control_points(self.position, target, towards)
+        control_point, mirror_control = find_control_points(
+            self.position, target, towards
+        )
 
-        control_p, mirror_p  = Coord(*to_coords(control_point)), Coord(*to_coords(mirror_control))
+        control_p, mirror_p = Coord(*to_coords(control_point)), Coord(
+            *to_coords(mirror_control)
+        )
         curve = cubic_bezier(to_coords(self.position), self.last_mirror_cp, cp, right)
-
 
         return target, thrust
 

@@ -43,12 +43,16 @@ class RacelinePainter(PicassoEngine):
         self.mark_points()
         # self.mark_segments()
         if len(self.curve) > 1:
-            pygame.draw.lines(self.canvas, GRAY, closed=False, points=self.curve, width=13)
+            pygame.draw.lines(
+                self.canvas, GRAY, closed=False, points=self.curve, width=13
+            )
             position = self.curve[self.posi]
             pygame.draw.circle(self.canvas, WHITE, position, radius=100)
 
         if len(self.live_curve) > 1:
-            pygame.draw.lines(self.canvas, RED, closed=False, points=self.live_curve, width=13)
+            pygame.draw.lines(
+                self.canvas, RED, closed=False, points=self.live_curve, width=13
+            )
 
         pygame.transform.scale(self.canvas, self.window_size, self.screen)
 
@@ -59,7 +63,7 @@ class RacelinePainter(PicassoEngine):
             labelSurface = self.font.render(str(i + 1), True, GRAY)
             aside = Coord(a.x + 89, a.y + 55)
             self.canvas.blit(labelSurface, aside)
-    
+
     def mark_segments(self):
         for segment in self.segments:
             pygame.draw.lines(self.canvas, GRAY, False, segment, width=13)
@@ -99,7 +103,9 @@ class RacelinePainter(PicassoEngine):
         # find all control points
         last_mirror_cp = self.layout[0]
         for left, right, tow in zip(
-            self.layout, self.layout[1:] + self.layout[:1], self.layout[2:] + self.layout[:2]
+            self.layout,
+            self.layout[1:] + self.layout[:1],
+            self.layout[2:] + self.layout[:2],
         ):
             position = complex(*left)
             target = complex(*right)
@@ -110,8 +116,13 @@ class RacelinePainter(PicassoEngine):
             self.segments.append((left, last_mirror_cp, cp, right))
             last_mirror_cp = mirror_cp
 
-        # add missing control point for start position        
-        first_corrected = (self.segments[0][0], last_mirror_cp, self.segments[0][2], self.segments[0][3])
+        # add missing control point for start position
+        first_corrected = (
+            self.segments[0][0],
+            last_mirror_cp,
+            self.segments[0][2],
+            self.segments[0][3],
+        )
         self.segments[0] = first_corrected
 
         # render curve
@@ -119,7 +130,6 @@ class RacelinePainter(PicassoEngine):
             curve = cubic_bezier(a, b, c, d)
             self.curve.extend(curve[1:-1])
 
-        
     def renew_curve(self, position, target, towards):
         pos = complex(*position)
         tar = complex(*target)
