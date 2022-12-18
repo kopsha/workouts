@@ -4,7 +4,7 @@ import numpy as np
 
 
 Coord = namedtuple("Coord", ["x", "y"])
-BEZIER_DETAIL = 13
+BEZIER_DETAIL = 34
 
 
 def clamp(value: float, left: float, right: float):
@@ -47,7 +47,7 @@ def cubic(a: float, b: float, c: float, d: float, t: float) -> float:
 def cubic_bezier(a: Coord, b: Coord, c: Coord, d: Coord) -> list[Coord]:
     curve = [
         Coord(cubic(a.x, b.x, c.x, d.x, t), cubic(a.y, b.y, c.y, d.y, t))
-        for t in np.linspace(0, 1, BEZIER_DETAIL)[1:-1]
+        for t in np.linspace(0, 1, BEZIER_DETAIL)
     ]
     return curve
 
