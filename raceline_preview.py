@@ -3,7 +3,15 @@ from __future__ import annotations
 import pygame
 
 from picasso import PicassoEngine
-from pod_utils import build_optimal_segments, build_bezier_path, pick_control_points, to_coords, cubic_bezier, Coord, BEZIER_DETAIL
+from pod_utils import (
+    build_optimal_segments,
+    build_bezier_path,
+    pick_control_points,
+    to_coords,
+    cubic_bezier,
+    Coord,
+    BEZIER_DETAIL,
+)
 
 
 BLACK = pygame.Color(0, 0, 0)
@@ -98,13 +106,12 @@ class RacelinePainter(PicassoEngine):
     def update_live_curve(self):
         self.posi %= len(self.curve)
         cpi = 1 + self.posi // (BEZIER_DETAIL - 1)
-        self.live_curve = self.curve[self.posi:1 + cpi*(BEZIER_DETAIL - 1)]
+        self.live_curve = self.curve[self.posi : 1 + cpi * (BEZIER_DETAIL - 1)]
 
     def post_init(self):
         self.font = pygame.font.SysFont("monospace", 168)
         self.segments = build_optimal_segments(self.layout)
         self.curve = build_bezier_path(self.segments)
-
 
 
 def main():
