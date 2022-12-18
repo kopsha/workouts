@@ -29,8 +29,8 @@ SAMPLE_LAYOUT = {
     "checkpoints": [
         Coord(x=13050, y=1919),
         Coord(x=6554, y=7863),
-        Coord(x=7490, y=1379),
         Coord(x=12724, y=7080),
+        Coord(x=7490, y=1379),
         Coord(x=4053, y=4660),
     ],
 }
@@ -415,7 +415,7 @@ def find_control_points(pos: Coord, left: Coord, right: Coord):
         int(degrees(target_angle)), int(degrees(towards_angle)), int(degrees(rev_half))
     )
 
-    mid_target = (target - position) / 4
+    mid_target = (target - position) / 3
     if rev_half > pi:
         rel_opp = mid_target * rect(1, rev_half)
         rel = mid_target * rect(1, rev_half + pi)
