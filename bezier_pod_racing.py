@@ -5,7 +5,7 @@ from cmath import rect, polar, phase, pi
 from collections import namedtuple, deque
 import sys
 
-from pod_utils import clamp
+from pod_utils import clamp, to_coords, cubic_bezier, find_control_points, Coord
 
 
 CP_RADIUS = 600
@@ -14,7 +14,6 @@ TURN_SPEED = 400
 HOLD_DURATION = 7
 
 
-Coord = namedtuple("Coord", ["x", "y"])
 Pod = namedtuple("Pod", ["x", "y", "vx", "vy", "angle", "cpid"])
 
 # ---- cut here ----
@@ -29,6 +28,7 @@ class PodRacer:
 
     def update(self, pod: Pod, checkpoints: list[Coord]) -> None:
         self.last_position = getattr(self, "position", None)
+        self.last_mirror_control = getattr(self, "mirror_control", to_coords(self.position))
         self.position = complex(pod.x, pod.y)
 
         self.velocity = complex(pod.vx, pod.vy)
@@ -40,7 +40,7 @@ class PodRacer:
         self.cpid = pod.cpid
         self.cp = complex(*checkpoints[pod.cpid])
         self.next_cp = complex(*checkpoints[(pod.cpid + 1) % len(checkpoints)])
-        self.target, self.thurst = self.drift_towards(self.cp)
+        self.target, self.thurst = self.find_racing_line(self.cp, self.next_cp)
         self.target = self.correct_rotation()
 
     def touch(self, target: complex) -> complex:
@@ -48,6 +48,18 @@ class PodRacer:
         along = self.position - target
         touch_delta = rect(CP_GRAVITY - CP_RADIUS, phase(along))
         return target - touch_delta
+    
+    def find_racing_line(self, checkpoint: complex, towards: complex) -> tuple[complex, int]:
+        thrust = 100
+        target = checkpoint
+
+        control_point, mirror_control = find_control_points(self.position, target, towards)
+
+        control_p, mirror_p  = Coord(*to_coords(control_point)), Coord(*to_coords(mirror_control))
+        curve = cubic_bezier(to_coords(self.position), self.last_mirror_cp, cp, right)
+
+
+        return target, thrust
 
     def drift_towards(self, target) -> tuple[complex, int]:
         thrust = 100

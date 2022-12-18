@@ -4,6 +4,7 @@ import numpy as np
 
 
 Coord = namedtuple("Coord", ["x", "y"])
+BEZIER_DETAIL = 13
 
 
 def clamp(value: float, left: float, right: float):
@@ -28,7 +29,7 @@ def quadratic(a: float, b: float, c: float, t: float) -> float:
 def quadratic_bezier(a: Coord, b: Coord, c: Coord) -> list[Coord]:
     curve = [
         Coord(quadratic(a.x, b.x, c.x, t), quadratic(a.y, b.y, c.y, t))
-        for t in np.linspace(0, 1, 34)
+        for t in np.linspace(0, 1, BEZIER_DETAIL)
     ]
     return curve
 
@@ -46,14 +47,14 @@ def cubic(a: float, b: float, c: float, d: float, t: float) -> float:
 def cubic_bezier(a: Coord, b: Coord, c: Coord, d: Coord) -> list[Coord]:
     curve = [
         Coord(cubic(a.x, b.x, c.x, d.x, t), cubic(a.y, b.y, c.y, d.y, t))
-        for t in np.linspace(0, 1, 34)
+        for t in np.linspace(0, 1, BEZIER_DETAIL)[1:-1]
     ]
     return curve
 
 
 def find_control_points(
     position: complex, target: complex, towards: complex
-) -> tuple[complex]:
+) -> tuple[complex, complex]:
 
     target_angle = phase(target - position)
     towards_angle = phase(towards - target)
