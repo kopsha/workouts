@@ -5,7 +5,15 @@ from cmath import rect, polar, phase, pi
 from collections import namedtuple, deque
 import sys
 
-from pod_utils import Coord, clamp, to_coords, cubic_bezier, build_optimal_segments, build_bezier_path, find_nearest_entry
+from pod_utils import (
+    Coord,
+    clamp,
+    to_coords,
+    cubic_bezier,
+    build_optimal_segments,
+    build_bezier_path,
+    find_nearest_entry,
+)
 
 
 CP_RADIUS = 600
@@ -28,9 +36,6 @@ class PodRacer:
 
     def update(self, pod: Pod, checkpoints: list[Coord]) -> None:
         self.last_position = getattr(self, "position", None)
-        self.last_mirror_control = getattr(
-            self, "mirror_control", to_coords(self.position)
-        )
         self.position = complex(pod.x, pod.y)
 
         self.velocity = complex(pod.vx, pod.vy)
@@ -50,8 +55,10 @@ class PodRacer:
         # self.target = self.correct_rotation()
 
     def follow_the_path(self, segments, path) -> None:
-        # position, facing, cpid, segments, path
-        self.target = find_nearest_entry(self.position, self.angle, self.cpid, segments, path)
+        ctarget = find_nearest_entry(
+            self.position, self.angle, self.cpid, segments, path
+        )
+        self.target = complex(*ctarget)
 
     def touch(self, target: complex) -> complex:
         """Will barely touch the checkpoint"""
@@ -101,7 +108,7 @@ class PodRacer:
         dev = t_angle - self.angle
         rot = clamp(dev, -pi / 10, pi / 10)
 
-        acc = rect(thrust, self.angle + rot)
+        acc = rect(int(thrust), self.angle + rot)
         movement = self.velocity + acc
         new_position = self.position + movement
 
@@ -216,7 +223,7 @@ def main():
     layout = read_race_layout()
     print(f"{layout=}", file=sys.stderr)
 
-    segments = build_optimal_segments(layout)
+    segments = build_optimal_segments(layout["checkpoints"])
     opath = build_bezier_path(segments)
 
     # first turn

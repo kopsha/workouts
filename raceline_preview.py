@@ -168,7 +168,7 @@ class RacelinePainter(PicassoEngine):
         delta = remainder(facing - phase(point - position), 2 * pi)
         best = dist * delta**2
 
-        if (start == 0):
+        if start == 0:
             start = len(self.curve) - 1
 
         print(start, int(dist), int(degrees(delta)), int(best), "stopping at", stop)

@@ -113,6 +113,7 @@ def build_bezier_path(segments) -> list[Coord]:
         path.extend(curve[:-1])
     return path
 
+
 def find_nearest_entry(position, facing, cpid, segments, curve):
     """
     Given current position, facing angle and existing bezier curve, finds the
@@ -129,11 +130,11 @@ def find_nearest_entry(position, facing, cpid, segments, curve):
     delta = remainder(facing - phase(point - position), 2 * pi)
     best = dist * delta**2
 
-    if (start == 0):
+    if start == 0:
         start = len(curve) - 1
 
     for i in range(start - 1, stop, -1):
-        point = complex(curve[i])
+        point = complex(*curve[i])
         dist = abs(point - position)
         delta = remainder(facing - phase(point - position), 2 * pi)
         keyf = dist * delta**2
