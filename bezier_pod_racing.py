@@ -226,6 +226,9 @@ def main():
     segments = build_optimal_segments(layout["checkpoints"])
     opath = build_bezier_path(segments)
 
+    print(f"{segments=}", file=sys.stderr)
+    print(f"{opath=}", file=sys.stderr)
+
     # first turn
     pods = read_all_pods()
     me1 = PodRacer("me1", pods["me_first"], layout["checkpoints"])
@@ -246,6 +249,7 @@ def main():
 
         me1.follow_the_path(segments, opath)
         me2.follow_the_path(segments, opath)
+        me2.thurst = 66
 
         him1.update(pods["him_first"], layout["checkpoints"])
         him2.update(pods["him_second"], layout["checkpoints"])

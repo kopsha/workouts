@@ -26,7 +26,7 @@ GREEN = pygame.Color(31, 255, 31)
 YELLOW = pygame.Color(255, 255, 63)
 WHITE = pygame.Color(255, 255, 255)
 
-SAMPLE_LAYOUT = {
+SAMPLE1 = {
     "lap_count": 3,
     "cp_count": 5,
     "checkpoints": [
@@ -38,7 +38,7 @@ SAMPLE_LAYOUT = {
     ],
 }
 
-ANOTHER_LAYOUT = {
+SAMPLE2 = {
     "lap_count": 3,
     "cp_count": 6,
     "checkpoints": [
@@ -48,6 +48,26 @@ ANOTHER_LAYOUT = {
         Coord(x=13861, y=1240),
         Coord(x=10255, y=4897),
         Coord(x=6080, y=2172),
+    ],
+}
+
+SAMPLE3 = {
+    "lap_count": 3,
+    "cp_count": 3,
+    "checkpoints": [
+        Coord(x=9098, y=1847),
+        Coord(x=5007, y=5276),
+        Coord(x=11497, y=6055),
+    ],
+}
+SAMPLE4 = {
+    "lap_count": 3,
+    "cp_count": 4,
+    "checkpoints": [
+        Coord(x=5661, y=2571),
+        Coord(x=4114, y=7395),
+        Coord(x=13518, y=2355),
+        Coord(x=12948, y=7198),
     ],
 }
 
@@ -200,7 +220,7 @@ class RacelinePainter(PicassoEngine):
 
 
 def main():
-    with RacelinePainter(layout=SAMPLE_LAYOUT["checkpoints"]) as engine:
+    with RacelinePainter(layout=SAMPLE4["checkpoints"]) as engine:
         engine.post_init()
         engine.run()
 
