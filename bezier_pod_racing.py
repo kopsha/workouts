@@ -5,7 +5,7 @@ from cmath import rect, polar, phase, pi
 from collections import namedtuple, deque
 import sys
 
-from pod_utils import clamp, to_coords, cubic_bezier, find_control_points, Coord
+from pod_utils import Coord, clamp, to_coords, cubic_bezier, build_optimal_segments, build_bezier_path, find_nearest_entry
 
 
 CP_RADIUS = 600
@@ -42,8 +42,16 @@ class PodRacer:
         self.cpid = pod.cpid
         self.cp = complex(*checkpoints[pod.cpid])
         self.next_cp = complex(*checkpoints[(pod.cpid + 1) % len(checkpoints)])
-        self.target, self.thurst = self.find_racing_line(self.cp, self.next_cp)
-        self.target = self.correct_rotation()
+
+        self.target = self.cp
+        self.thurst = 100
+
+        # self.target, self.thurst = self.find_racing_line(self.cp, self.next_cp)
+        # self.target = self.correct_rotation()
+
+    def follow_the_path(self, segments, path) -> None:
+        # position, facing, cpid, segments, path
+        self.target = find_nearest_entry(self.position, self.angle, self.cpid, segments, path)
 
     def touch(self, target: complex) -> complex:
         """Will barely touch the checkpoint"""
@@ -51,45 +59,28 @@ class PodRacer:
         touch_delta = rect(CP_GRAVITY - CP_RADIUS, phase(along))
         return target - touch_delta
 
-    def find_racing_line(
-        self, checkpoint: complex, towards: complex
-    ) -> tuple[complex, int]:
-        thrust = 100
-        target = checkpoint
+    # def drift_towards(self, target) -> tuple[complex, int]:
+    #     thrust = 100
+    #     distance = abs(self.position - self.cp)
 
-        control_point, mirror_control = find_control_points(
-            self.position, target, towards
-        )
+    #     target_dev = remainder(phase(target - self.position) - self.v_angle, pi)
+    #     next_cp_dev = remainder(self.v_angle - phase(self.next_cp - self.cp), pi)
 
-        control_p, mirror_p = Coord(*to_coords(control_point)), Coord(
-            *to_coords(mirror_control)
-        )
-        curve = cubic_bezier(to_coords(self.position), self.last_mirror_cp, cp, right)
+    #     if distance <= sum(self.speed_trace):
+    #         if self.speed_trace[-1] > 300:
+    #             # change target sooner to allow rotation
+    #             target = self.next_cp
+    #         if abs(next_cp_dev) > pi / 2:
+    #             thrust = 0
+    #         elif abs(next_cp_dev) > pi / 4:
+    #             thrust = 50
+    #     else:
+    #         if abs(target_dev) > 3 * pi / 4:
+    #             thrust = 0 if self.speed_trace[-1] > 250 else 33
+    #         elif abs(target_dev) > pi / 2:
+    #             thrust = 66
 
-        return target, thrust
-
-    def drift_towards(self, target) -> tuple[complex, int]:
-        thrust = 100
-        distance = abs(self.position - self.cp)
-
-        target_dev = remainder(phase(target - self.position) - self.v_angle, pi)
-        next_cp_dev = remainder(self.v_angle - phase(self.next_cp - self.cp), pi)
-
-        if distance <= sum(self.speed_trace):
-            if self.speed_trace[-1] > 300:
-                # change target sooner to allow rotation
-                target = self.next_cp
-            if abs(next_cp_dev) > pi / 2:
-                thrust = 0
-            elif abs(next_cp_dev) > pi / 4:
-                thrust = 50
-        else:
-            if abs(target_dev) > 3 * pi / 4:
-                thrust = 0 if self.speed_trace[-1] > 250 else 33
-            elif abs(target_dev) > pi / 2:
-                thrust = 66
-
-        return target, thrust
+    #     return target, thrust
 
     def correct_rotation(self) -> complex:
         target_dev = remainder(phase(self.target - self.position) - self.v_angle, pi)
@@ -99,7 +90,6 @@ class PodRacer:
 
     @property
     def next_position(self):
-        """a more accurate next position computation"""
         if self.thurst == "SHIELD":
             thrust = 0
         elif self.thurst == "BOOST":
@@ -226,6 +216,9 @@ def main():
     layout = read_race_layout()
     print(f"{layout=}", file=sys.stderr)
 
+    segments = build_optimal_segments(layout)
+    opath = build_bezier_path(segments)
+
     # first turn
     pods = read_all_pods()
     me1 = PodRacer("me1", pods["me_first"], layout["checkpoints"])
@@ -243,6 +236,9 @@ def main():
         pods = read_all_pods()
         me1.update(pods["me_first"], layout["checkpoints"])
         me2.update(pods["me_second"], layout["checkpoints"])
+
+        me1.follow_the_path(segments, opath)
+        me2.follow_the_path(segments, opath)
 
         him1.update(pods["him_first"], layout["checkpoints"])
         him2.update(pods["him_second"], layout["checkpoints"])

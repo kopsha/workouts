@@ -157,8 +157,6 @@ class RacelinePainter(PicassoEngine):
         last_position = complex(*self.last_position)
         facing = phase(position - last_position)
 
-        print(last_position, "->", position, "<)", int(degrees(facing)))
-
         seg_count = len(self.segments)
         seg_len = BEZIER_DETAIL - 1
         start = self.cpid * seg_len
@@ -169,6 +167,10 @@ class RacelinePainter(PicassoEngine):
         dist = abs(point - position)
         delta = remainder(facing - phase(point - position), 2 * pi)
         best = dist * delta**2
+
+        if (start == 0):
+            start = len(self.curve) - 1
+
         print(start, int(dist), int(degrees(delta)), int(best), "stopping at", stop)
 
         for i in range(start - 1, stop, -1):

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from cmath import rect, phase, pi
+from math import remainder
 from collections import namedtuple
 import numpy as np
 
@@ -13,7 +14,7 @@ def clamp(value: float, left: float, right: float):
     return max(left, min(value, right))
 
 
-def to_coords(z: complex) -> tuple[int]:
+def to_coords(z: complex) -> tuple[int, int]:
     return int(round(z.real)), int(round(z.imag))
 
 
@@ -111,3 +112,34 @@ def build_bezier_path(segments) -> list[Coord]:
         curve = cubic_bezier(a, b, c, d)
         path.extend(curve[:-1])
     return path
+
+def find_nearest_entry(position, facing, cpid, segments, curve):
+    """
+    Given current position, facing angle and existing bezier curve, finds the
+    best point to enter the path...
+    """
+
+    segment_size = BEZIER_DETAIL - 1
+    start = cpid * segment_size
+    stop = ((cpid - 1) % len(segments)) * segment_size
+
+    nearest = start
+    point = complex(*curve[start])
+    dist = abs(point - position)
+    delta = remainder(facing - phase(point - position), 2 * pi)
+    best = dist * delta**2
+
+    if (start == 0):
+        start = len(curve) - 1
+
+    for i in range(start - 1, stop, -1):
+        point = complex(curve[i])
+        dist = abs(point - position)
+        delta = remainder(facing - phase(point - position), 2 * pi)
+        keyf = dist * delta**2
+
+        if keyf < best:
+            best = keyf
+            nearest = i
+
+    return curve[nearest]
