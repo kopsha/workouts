@@ -75,7 +75,9 @@ class RacelinePainter(PicassoEngine):
             pygame.draw.lines(
                 self.canvas, GRAY, closed=False, points=self.curve, width=13
             )
-            pygame.draw.line(self.canvas, GRAY, self.last_position, self.position, width=10)
+            pygame.draw.line(
+                self.canvas, GRAY, self.last_position, self.position, width=10
+            )
             pygame.draw.circle(self.canvas, GRAY, self.last_position, radius=72)
             pygame.draw.circle(self.canvas, YELLOW, self.position, radius=100)
 
@@ -92,11 +94,12 @@ class RacelinePainter(PicassoEngine):
     def mark_points(self) -> None:
         for i, segment in enumerate(self.segments):
             a, b, c, d = segment
-            pygame.draw.circle(self.canvas, RED if i == self.cpid else GREEN, a, radius=55)
+            pygame.draw.circle(
+                self.canvas, RED if i == self.cpid else GREEN, a, radius=55
+            )
             labelSurface = self.font.render(str(i + 1), True, LIGHTBLUE)
             aside = Coord(a.x + 89, a.y + 55)
             self.canvas.blit(labelSurface, aside)
-
 
     def mark_segments(self):
         for segment in self.segments:
@@ -127,7 +130,7 @@ class RacelinePainter(PicassoEngine):
         elif event.key == pygame.K_LEFT:
             self.posi -= 1
             self.position = self.pick_position_around()
-            self.last_position = self.curve[self.posi] # hack
+            self.last_position = self.curve[self.posi]  # hack
             self.find_nearest_entry()
             print(f"--> {self.posi} / {len(self.curve)}")
 
@@ -164,14 +167,14 @@ class RacelinePainter(PicassoEngine):
         nearest = start
         point = complex(*self.curve[start])
         dist = abs(point - position)
-        delta = remainder(facing - phase(point - position), 2*pi)
+        delta = remainder(facing - phase(point - position), 2 * pi)
         best = dist * delta ** 2
         print(start, int(dist), int(degrees(delta)), int(best), "stopping at", stop)
 
         for i in range(start - 1, stop, -1):
             point = complex(*self.curve[i])
             dist = abs(point - position)
-            delta = remainder(facing - phase(point - position), 2*pi)
+            delta = remainder(facing - phase(point - position), 2 * pi)
             kf = dist * delta ** 2
             print(i, int(dist), int(degrees(delta)), int(kf))
             if kf < best:
