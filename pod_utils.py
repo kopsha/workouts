@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from cmath import rect, phase, pi
-from math import remainder
+from math import remainder, degrees
 from collections import namedtuple
 import numpy as np
 
@@ -16,6 +16,10 @@ def clamp(value: float, left: float, right: float):
 
 def to_coords(z: complex) -> tuple[int, int]:
     return int(round(z.real)), int(round(z.imag))
+
+
+def humangle(alpha: float):
+    return f"{int(round(degrees(alpha)))}°"
 
 
 def lerp(a: Coord, b: Coord, t: float) -> Coord:
@@ -61,17 +65,13 @@ def pick_control_points(
 
     target_angle = phase(target - position)
     towards_angle = phase(towards - target)
-    rev_half = pi - (target_angle - towards_angle) / 2
+    half_twist = remainder(target_angle - towards_angle, 2 * pi) / 2
 
-    mid_target = (target - position) / 3
-    if rev_half > pi:
-        rel_opp = mid_target * rect(1, rev_half)
-        rel = mid_target * rect(1, rev_half + pi)
-    else:
-        rel = mid_target * rect(1, rev_half)
-        rel_opp = mid_target * rect(1, rev_half + pi)
+    offset = (target - position) / 4
+    d_offset = offset * rect(1, pi - half_twist)
+    d_offset_opp = offset * rect(1, -half_twist)
 
-    return target - rel, target - rel_opp
+    return target + d_offset, target + d_offset_opp
 
 
 def build_optimal_segments(checkpoints: list[Coord]) -> list[tuple[Coord]]:

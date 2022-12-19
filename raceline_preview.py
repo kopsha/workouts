@@ -51,6 +51,7 @@ ANOTHER_LAYOUT = {
     ],
 }
 
+
 class RacelinePainter(PicassoEngine):
     def __init__(self, layout):
         self.canvas_size = 16000, 9000
@@ -117,10 +118,10 @@ class RacelinePainter(PicassoEngine):
         for segment in self.segments:
             pygame.draw.lines(self.canvas, GRAY, False, segment, width=13)
             a, b, c, d = segment
-            pygame.draw.circle(self.canvas, GREEN, a, radius=55)
+            # pygame.draw.circle(self.canvas, GREEN, a, radius=55)
             pygame.draw.circle(self.canvas, WHITE, b, radius=34)
             pygame.draw.circle(self.canvas, WHITE, c, radius=34)
-            pygame.draw.circle(self.canvas, GREEN, d, radius=55)
+            # pygame.draw.circle(self.canvas, GREEN, d, radius=55)
 
     def on_click(self, event):
         pass
@@ -183,14 +184,14 @@ class RacelinePainter(PicassoEngine):
         if start == 0:
             start = len(self.curve) - 1
 
-        print(start, int(dist), int(degrees(delta)), int(best), "stopping at", stop)
+        # print(start, int(dist), int(degrees(delta)), int(best), "stopping at", stop)
 
         for i in range(start - 1, stop, -1):
             point = complex(*self.curve[i])
             dist = abs(point - position)
             delta = remainder(facing - phase(point - position), 2 * pi)
             kf = dist * delta**2
-            print(i, int(dist), int(degrees(delta)), int(kf))
+            # print(i, int(dist), int(degrees(delta)), int(kf))
             if kf < best:
                 best = kf
                 nearest = i
@@ -199,7 +200,7 @@ class RacelinePainter(PicassoEngine):
 
 
 def main():
-    with RacelinePainter(layout=ANOTHER_LAYOUT["checkpoints"]) as engine:
+    with RacelinePainter(layout=SAMPLE_LAYOUT["checkpoints"]) as engine:
         engine.post_init()
         engine.run()
 
