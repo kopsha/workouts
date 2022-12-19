@@ -168,14 +168,14 @@ class RacelinePainter(PicassoEngine):
         point = complex(*self.curve[start])
         dist = abs(point - position)
         delta = remainder(facing - phase(point - position), 2 * pi)
-        best = dist * delta ** 2
+        best = dist * delta**2
         print(start, int(dist), int(degrees(delta)), int(best), "stopping at", stop)
 
         for i in range(start - 1, stop, -1):
             point = complex(*self.curve[i])
             dist = abs(point - position)
             delta = remainder(facing - phase(point - position), 2 * pi)
-            kf = dist * delta ** 2
+            kf = dist * delta**2
             print(i, int(dist), int(degrees(delta)), int(kf))
             if kf < best:
                 best = kf

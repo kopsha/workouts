@@ -24,7 +24,7 @@ def lerp(a: Coord, b: Coord, t: float) -> Coord:
 
 
 def quadratic(a: float, b: float, c: float, t: float) -> float:
-    rc = (1 - t) ** 2 * a + 2 * (1 - t) * t * b + t ** 2 * c
+    rc = (1 - t) ** 2 * a + 2 * (1 - t) * t * b + t**2 * c
     return rc
 
 
@@ -40,8 +40,8 @@ def cubic(a: float, b: float, c: float, d: float, t: float) -> float:
     rc = (
         (1 - t) ** 3 * a
         + 3 * (1 - t) ** 2 * t * b
-        + 3 * (1 - t) * t ** 2 * c
-        + t ** 3 * d
+        + 3 * (1 - t) * t**2 * c
+        + t**3 * d
     )
     return rc
 
