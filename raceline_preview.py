@@ -38,15 +38,27 @@ SAMPLE_LAYOUT = {
     ],
 }
 
+ANOTHER_LAYOUT = {
+    "lap_count": 3,
+    "cp_count": 6,
+    "checkpoints": [
+        Coord(x=3030, y=5188),
+        Coord(x=6253, y=7759),
+        Coord(x=14105, y=7752),
+        Coord(x=13861, y=1240),
+        Coord(x=10255, y=4897),
+        Coord(x=6080, y=2172),
+    ],
+}
 
 class RacelinePainter(PicassoEngine):
-    def __init__(self):
+    def __init__(self, layout):
         self.canvas_size = 16000, 9000
         self.window_size = 1600, 900
         super().__init__(self.window_size, "The beauty of Bezier Curve")
         self.window = pygame.Surface(self.window_size)
 
-        self.layout = SAMPLE_LAYOUT["checkpoints"]
+        self.layout = layout
         self.curve = list()
         self.live_curve = list()
 
@@ -187,7 +199,7 @@ class RacelinePainter(PicassoEngine):
 
 
 def main():
-    with RacelinePainter() as engine:
+    with RacelinePainter(layout=ANOTHER_LAYOUT["checkpoints"]) as engine:
         engine.post_init()
         engine.run()
 
