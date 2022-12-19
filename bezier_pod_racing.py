@@ -48,11 +48,8 @@ class PodRacer:
         self.cp = complex(*checkpoints[pod.cpid])
         self.next_cp = complex(*checkpoints[(pod.cpid + 1) % len(checkpoints)])
 
-        self.target = self.cp
-        self.thurst = 100
-
-        # self.target, self.thurst = self.find_racing_line(self.cp, self.next_cp)
-        # self.target = self.correct_rotation()
+        self.target, self.thurst = self.drift_towards(self.cp)
+        self.target = self.correct_rotation()
 
     def follow_the_path(self, segments, path) -> None:
         ctarget = find_nearest_entry(
@@ -66,33 +63,38 @@ class PodRacer:
         touch_delta = rect(CP_GRAVITY - CP_RADIUS, phase(along))
         return target - touch_delta
 
-    # def drift_towards(self, target) -> tuple[complex, int]:
-    #     thrust = 100
-    #     distance = abs(self.position - self.cp)
+    def drift_towards(self, target) -> tuple[complex, int]:
+        thrust = 100
+        distance = abs(self.position - self.cp)
 
-    #     target_dev = remainder(phase(target - self.position) - self.v_angle, pi)
-    #     next_cp_dev = remainder(self.v_angle - phase(self.next_cp - self.cp), pi)
+        target_dev = remainder(phase(target - self.position) - self.v_angle, pi)
+        next_cp_dev = remainder(self.v_angle - phase(self.next_cp - self.cp), pi)
 
-    #     if distance <= sum(self.speed_trace):
-    #         if self.speed_trace[-1] > 300:
-    #             # change target sooner to allow rotation
-    #             target = self.next_cp
-    #         if abs(next_cp_dev) > pi / 2:
-    #             thrust = 0
-    #         elif abs(next_cp_dev) > pi / 4:
-    #             thrust = 50
-    #     else:
-    #         if abs(target_dev) > 3 * pi / 4:
-    #             thrust = 0 if self.speed_trace[-1] > 250 else 33
-    #         elif abs(target_dev) > pi / 2:
-    #             thrust = 66
-
-    #     return target, thrust
+        if distance <= sum(self.speed_trace):
+            if self.speed_trace[-1] > 300:
+                # change target sooner to allow rotation
+                target = self.next_cp
+            if abs(next_cp_dev) > pi / 2:
+                thrust = 0
+            elif abs(next_cp_dev) > pi / 4:
+                thrust = 50
+        else:
+            if abs(target_dev) > 3 * pi / 4:
+                thrust = 0 if self.speed_trace[-1] > 250 else 33
+            elif abs(target_dev) > pi / 2:
+                thrust = 66
+        target = self.touch(target)
+        return target, thrust
 
     def correct_rotation(self) -> complex:
-        target_dev = remainder(phase(self.target - self.position) - self.v_angle, pi)
+        facing = remainder(self.angle, 2 * pi)
+        t_angle = phase(self.target - self.position)
+        target_dev = remainder(t_angle - self.v_angle, 2 * pi)
         desired = self.target - self.position
-        rotate = rect(1, target_dev / 4)
+        correction = clamp(target_dev / 4, -pi / 20, pi / 20)
+        # print(f"{self.name}> {humangle(facing)}, {humangle(self.v_angle)}, {humangle(t_angle)}", file=sys.stderr)
+        # print(f"{self.name}> {humangle(target_dev)} Correction: {humangle(correction)}", file=sys.stderr)
+        rotate = rect(1, correction)
         return desired * rotate + self.position
 
     @property
@@ -133,12 +135,6 @@ class PodRacer:
                     file=sys.stderr,
                 )
                 self.thurst = "SHIELD"
-                return
-            elif next_dist <= 1800 and collision_angle <= pi / 5:
-                # move in-front of opponent
-                x = (self.target.real * 2 + opp.position.real) / 3
-                y = (self.target.imag * 2 + opp.position.imag) / 3
-                self.target = complex(x, y)
                 return
 
     def can_boost(self) -> bool:
@@ -246,13 +242,11 @@ def main():
         pods = read_all_pods()
         me1.update(pods["me_first"], layout["checkpoints"])
         me2.update(pods["me_second"], layout["checkpoints"])
-
-        me1.follow_the_path(segments, opath)
-        me2.follow_the_path(segments, opath)
-        me2.thurst = 66
-
         him1.update(pods["him_first"], layout["checkpoints"])
         him2.update(pods["him_second"], layout["checkpoints"])
+
+        # me1.follow_the_path(segments, opath)
+        # me2.follow_the_path(segments, opath)
 
         # TODO:
         # - evaluate, can we reach the target [postponed]
