@@ -8,6 +8,7 @@ import sys
 from pod_utils import (
     Coord,
     clamp,
+    humangle,
     to_coords,
     cubic_bezier,
     build_optimal_segments,
@@ -81,21 +82,6 @@ class PodRacer:
         self.target = self.touch(target)
         self.thrust = thrust
 
-    def follow_the_path(self, segments, path) -> None:
-        bezier_target = complex(
-            *find_nearest_entry(self.position, self.angle, self.cpid, segments, path)
-        )
-
-        distance = int(abs(bezier_target - self.cp))
-
-        print(
-            f"{self.name}> {to_coords(bezier_target)} to cp: {distance}",
-            file=sys.stderr,
-        )
-
-        self.target = self.cp if distance < 2000 else bezier_target
-        self.thrust = 100
-
     def correct_rotation(self) -> complex:
         facing = remainder(self.angle, 2 * pi)
         t_angle = phase(self.target - self.position)
@@ -104,8 +90,14 @@ class PodRacer:
 
         correction = clamp(target_dev / 4, -pi / 20, pi / 20)
 
-        # print(f"{self.name}> {humangle(facing)}, {humangle(self.v_angle)}, {humangle(t_angle)}", file=sys.stderr)
-        # print(f"{self.name}> {humangle(target_dev)} Correction: {humangle(correction)}", file=sys.stderr)
+        print(
+            f"{self.name}> {humangle(facing)}, {humangle(self.v_angle)}, {humangle(t_angle)}",
+            file=sys.stderr,
+        )
+        print(
+            f"{self.name}> {humangle(target_dev)} Correction: {humangle(correction)}",
+            file=sys.stderr,
+        )
 
         rotate = rect(1, correction)
         return desired * rotate + self.position
@@ -131,22 +123,8 @@ class PodRacer:
 
     def defend_on_collision(self, opponents: Iterable[PodRacer]):
         for opp in opponents:
-            distance = int(round(abs(self.position - opp.position)))
             next_dist = int(round(abs(self.next_position - opp.next_position)))
             speed_diff = abs(self.velocity - opp.velocity)
-
-            # if next_dist < 2000:
-            #     print(
-            #         f"--- {self.name} vs {opp.name} => {distance} .. {next_dist} ---", file=sys.stderr
-            #     )
-            #     print(
-            #         f"{to_coords(self.velocity)} - {to_coords(opp.velocity)} => {int(speed_diff)}",
-            #         file=sys.stderr,
-            #     )
-            #     print(
-            #         f"Collision angle: {int(degrees(collision_angle))}",
-            #         file=sys.stderr,
-            #     )
 
             if next_dist <= 888 and speed_diff > 250:
                 self.thrust = "SHIELD"
@@ -234,9 +212,6 @@ def main():
     layout = read_race_layout()
     print(f"{layout=}", file=sys.stderr)
 
-    segments = build_optimal_segments(layout["checkpoints"])
-    opath = build_bezier_path(segments)
-
     # first turn
     pods = read_all_pods()
     me1 = PodRacer("me1", pods["me_first"], layout["checkpoints"])
@@ -245,11 +220,10 @@ def main():
     him2 = PodRacer("him2", pods["him_second"], layout["checkpoints"])
 
     # take the checkpoint as first target
-    # me1.drift_towards_checkpoint()
-    # me2.drift_towards_checkpoint()
 
     print(repr(me1), file=sys.stderr)
     print(repr(me2), file=sys.stderr)
+
     print(me1)
     print(me2)
 
@@ -262,11 +236,9 @@ def main():
         him2.update(pods["him_second"], layout["checkpoints"])
 
         me1.drift_towards_checkpoint()
-        # me1.follow_the_path(segments, opath)
         me1.correct_rotation()
 
         me2.drift_towards_checkpoint()
-        # me2.follow_the_path(segments, opath)
         # me2.correct_rotation()
 
         # TODO:
@@ -299,5 +271,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-
 # ---- cut here ----
