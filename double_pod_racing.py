@@ -1,33 +1,32 @@
 from __future__ import annotations
+from typing import Iterable
+
 from math import degrees, radians, remainder
 from cmath import rect, polar, phase, pi
 from collections import namedtuple, deque
-from typing import Iterable
 import sys
+
+from pod_utils import Coord, clamp, humangle, to_coords
 
 
 CP_RADIUS = 600
 CP_GRAVITY = CP_RADIUS // 10
 TURN_SPEED = 400
+HOLD_DURATION = 7
 
-Coord = namedtuple("Coord", ["x", "y"])
+
 Pod = namedtuple("Pod", ["x", "y", "vx", "vy", "angle", "cpid"])
 
-
-def clamp(value: float, left: float, right: float):
-    return max(left, min(value, right))
-
-
+# ---- cut here ----
 class PodRacer:
     def __init__(self, name, pod: Pod, checkpoints: list[Coord]) -> None:
         self.name = name
         self.has_boost = True
         self.speed_trace = deque(maxlen=5)
-        self.position = None
         self.update(pod, checkpoints)
 
     def update(self, pod: Pod, checkpoints: list[Coord]) -> None:
-        self.last_position = self.position
+        self.last_position = getattr(self, "position", None)
         self.position = complex(pod.x, pod.y)
 
         self.velocity = complex(pod.vx, pod.vy)
@@ -39,8 +38,10 @@ class PodRacer:
         self.cpid = pod.cpid
         self.cp = complex(*checkpoints[pod.cpid])
         self.next_cp = complex(*checkpoints[(pod.cpid + 1) % len(checkpoints)])
-        self.target, self.thurst = self.drift_towards(self.cp)
-        self.target = self.correct_rotation()
+
+        # dummy
+        self.thrust = 100
+        self.target = self.cp
 
     def touch(self, target: complex) -> complex:
         """Will barely touch the checkpoint"""
@@ -48,12 +49,13 @@ class PodRacer:
         touch_delta = rect(CP_GRAVITY - CP_RADIUS, phase(along))
         return target - touch_delta
 
-    def drift_towards(self, target) -> tuple[complex, int]:
+    def drift_towards_checkpoint(self):
+        target = self.target
         thrust = 100
         distance = abs(self.position - self.cp)
 
-        target_dev = remainder(phase(target - self.position) - self.v_angle, pi)
-        next_cp_dev = remainder(self.v_angle - phase(self.next_cp - self.cp), pi)
+        target_dev = remainder(phase(target - self.position) - self.v_angle, 2 * pi)
+        next_cp_dev = remainder(self.v_angle - phase(self.next_cp - self.cp), 2 * pi)
 
         if distance <= sum(self.speed_trace):
             if self.speed_trace[-1] > 300:
@@ -64,34 +66,48 @@ class PodRacer:
             elif abs(next_cp_dev) > pi / 4:
                 thrust = 50
         else:
-            if target_dev > 3 * pi / 4:
+            if abs(target_dev) > 3 * pi / 4:
                 thrust = 0 if self.speed_trace[-1] > 250 else 33
-            elif target_dev > pi / 2:
+            elif abs(target_dev) > pi / 2:
                 thrust = 66
 
-        return target, thrust
+        self.target = self.touch(target)
+        self.thrust = thrust
 
     def correct_rotation(self) -> complex:
-        target_dev = remainder(phase(self.target - self.position) - self.v_angle, pi)
+        facing = remainder(self.angle, 2 * pi)
+        t_angle = phase(self.target - self.position)
+        target_dev = remainder(t_angle - self.v_angle, 2 * pi)
         desired = self.target - self.position
-        rotate = rect(1, target_dev / 4)
+
+        correction = clamp(target_dev / 4, -pi / 20, pi / 20)
+
+        print(
+            f"{self.name}> {humangle(facing)}, {humangle(self.v_angle)}, {humangle(t_angle)}",
+            file=sys.stderr,
+        )
+        print(
+            f"{self.name}> {humangle(target_dev)} Correction: {humangle(correction)}",
+            file=sys.stderr,
+        )
+
+        rotate = rect(1, correction)
         return desired * rotate + self.position
 
     @property
     def next_position(self):
-        """a more accurate next position computation"""
-        if self.thurst == "SHIELD":
+        if self.thrust == "SHIELD":
             thrust = 0
-        elif self.thurst == "BOOST":
+        elif self.thrust == "BOOST":
             thrust = 650
         else:
-            thrust = self.thurst
+            thrust = self.thrust
 
         t_angle = phase(self.target - self.position)
         dev = t_angle - self.angle
         rot = clamp(dev, -pi / 10, pi / 10)
 
-        acc = rect(thrust, self.angle + rot)
+        acc = rect(int(thrust), self.angle + rot)
         movement = self.velocity + acc
         new_position = self.position + movement
 
@@ -100,47 +116,11 @@ class PodRacer:
     def defend_on_collision(self, opponents: Iterable[PodRacer]):
         for opp in opponents:
             next_dist = int(round(abs(self.next_position - opp.next_position)))
-            speed_diff = abs(self.speed_trace[-1] - opp.speed_trace[-1])
-            collision_angle = remainder(self.v_angle - opp.v_angle, pi)
+            speed_diff = abs(self.velocity - opp.velocity)
 
-            if next_dist <= 900 and (abs(collision_angle) > pi / 4 or speed_diff > 250):
-                print(
-                    f"--- {self.name} vs {opp.name} => {next_dist} ---", file=sys.stderr
-                )
-                print(
-                    f"{self.speed_trace[-1]}m/s vs {opp.speed_trace[-1]} m/s",
-                    file=sys.stderr,
-                )
-                print(
-                    f"Collision angle: {int(degrees(collision_angle))}",
-                    file=sys.stderr,
-                )
-                self.thurst = "SHIELD"
+            if next_dist <= 888 and speed_diff > 250:
+                self.thrust = "SHIELD"
                 return
-            elif next_dist <= 1800 and collision_angle <= pi / 5:
-                # move in-front of opponent
-                x = (self.target.real * 2 + opp.position.real) / 3
-                y = (self.target.imag * 2 + opp.position.imag) / 3
-                self.target = complex(x, y)
-                return
-
-    def can_reach_checkpoint(self):
-        """a more accurate next position computation"""
-
-        last_distance = abs(self.last_position - self.cp)
-        distance = abs(self.position - self.cp)
-        next_distance = abs(self.next_position - self.cp)
-
-        print(
-            f"derivative? {last_distance - distance} > {distance - next_distance}",
-            file=sys.stderr,
-        )
-        print(
-            f"closing? {last_distance} > {distance} > {next_distance}",
-            file=sys.stderr,
-        )
-
-        return True
 
     def can_boost(self) -> bool:
         if self.has_boost:
@@ -154,20 +134,20 @@ class PodRacer:
 
     def boost(self) -> None:
         if self.has_boost:
-            self.thurst = "BOOST"
+            self.thrust = "BOOST"
             self.has_boost = False
 
     def __str__(self):
         return (
             f"{int(round(self.target.real))} "
             f"{int(round(self.target.imag))} "
-            f"{self.thurst}"
+            f"{self.thrust}"
         )
 
     def __repr__(self):
         return (
             f"F<:{self.facing}° "
-            f"V:{int(round(abs(self.velocity))):4} m/s O:{self.thurst:4} "
+            f"V:{int(round(abs(self.velocity))):4} m/s O:{self.thrust:4} "
             f"D:{int(round(abs(self.cp - self.position))):4} m "
             f"has boost: {self.has_boost}"
         )
@@ -220,12 +200,9 @@ def read_all_pods() -> dict:
     )
 
 
-def to_coords(z):
-    return int(round(z.real)), int(round(z.imag))
-
-
 def main():
     layout = read_race_layout()
+    print(f"{layout=}", file=sys.stderr)
 
     # first turn
     pods = read_all_pods()
@@ -234,8 +211,11 @@ def main():
     him1 = PodRacer("him1", pods["him_first"], layout["checkpoints"])
     him2 = PodRacer("him2", pods["him_second"], layout["checkpoints"])
 
+    # take the checkpoint as first target
+
     print(repr(me1), file=sys.stderr)
     print(repr(me2), file=sys.stderr)
+
     print(me1)
     print(me2)
 
@@ -244,28 +224,35 @@ def main():
         pods = read_all_pods()
         me1.update(pods["me_first"], layout["checkpoints"])
         me2.update(pods["me_second"], layout["checkpoints"])
-
         him1.update(pods["him_first"], layout["checkpoints"])
         him2.update(pods["him_second"], layout["checkpoints"])
 
+        me1.drift_towards_checkpoint()
+        me1.correct_rotation()
+
+        me2.drift_towards_checkpoint()
+        # me2.correct_rotation()
+
         # TODO:
-        # - evaluate, can we reach the target ?
-        # - avoid team collisions too
+        # - evaluate, can we reach the target [postponed]
+        # - avoid team collisions
+        # - bezier racing lines for fastest target reach
+        # - evaluate race positions
+        # - avoid obstacles strategy
+        # - add bullying strategy
+
         if hold_boost > 0:
             hold_boost -= 1
         else:
             if me1.can_boost():
                 me1.boost()
-                hold_boost = 7
+                hold_boost = HOLD_DURATION
             elif me2.can_boost():
                 me2.boost()
-                hold_boost = 7
+                hold_boost = HOLD_DURATION
 
         me1.defend_on_collision((him1, him2))
         me2.defend_on_collision((him2, him1))
-
-        me1.can_reach_checkpoint()
-        me2.can_reach_checkpoint()
 
         print(repr(me1), file=sys.stderr)
         print(repr(me2), file=sys.stderr)
@@ -276,3 +263,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+# ---- cut here ----
