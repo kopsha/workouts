@@ -7,7 +7,7 @@ import numpy as np
 
 
 Coord = namedtuple("Coord", ["x", "y"])
-BEZIER_DETAIL = 13
+BEZIER_DETAIL = 8
 
 
 def clamp(value: float, left: float, right: float):

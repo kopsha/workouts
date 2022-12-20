@@ -37,7 +37,6 @@ SAMPLE1 = {
         Coord(4053, 4660),
     ],
 }
-
 SAMPLE2 = {
     "lap_count": 3,
     "cp_count": 6,
@@ -50,7 +49,6 @@ SAMPLE2 = {
         Coord(x=6080, y=2172),
     ],
 }
-
 SAMPLE3 = {
     "lap_count": 3,
     "cp_count": 3,
@@ -68,6 +66,18 @@ SAMPLE4 = {
         Coord(x=4114, y=7395),
         Coord(x=13518, y=2355),
         Coord(x=12948, y=7198),
+    ],
+}
+SAMPLE5 = {
+    "lap_count": 3,
+    "cp_count": 6,
+    "checkpoints": [
+        Coord(x=3296, y=7255),
+        Coord(x=14594, y=7682),
+        Coord(x=10559, y=5045),
+        Coord(x=13114, y=2310),
+        Coord(x=4549, y=2172),
+        Coord(x=7373, y=4959),
     ],
 }
 
@@ -220,7 +230,7 @@ class RacelinePainter(PicassoEngine):
 
 
 def main():
-    with RacelinePainter(layout=SAMPLE4["checkpoints"]) as engine:
+    with RacelinePainter(layout=SAMPLE5["checkpoints"]) as engine:
         engine.post_init()
         engine.run()
 

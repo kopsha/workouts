@@ -25,8 +25,6 @@ HOLD_DURATION = 7
 Pod = namedtuple("Pod", ["x", "y", "vx", "vy", "angle", "cpid"])
 
 # ---- cut here ----
-
-
 class PodRacer:
     def __init__(self, name, pod: Pod, checkpoints: list[Coord]) -> None:
         self.name = name
@@ -48,14 +46,9 @@ class PodRacer:
         self.cp = complex(*checkpoints[pod.cpid])
         self.next_cp = complex(*checkpoints[(pod.cpid + 1) % len(checkpoints)])
 
-        self.target, self.thurst = self.drift_towards(self.cp)
-        self.target = self.correct_rotation()
-
-    def follow_the_path(self, segments, path) -> None:
-        ctarget = find_nearest_entry(
-            self.position, self.angle, self.cpid, segments, path
-        )
-        self.target = complex(*ctarget)
+        # dummy
+        self.thrust = 100
+        self.target = self.cp
 
     def touch(self, target: complex) -> complex:
         """Will barely touch the checkpoint"""
@@ -63,12 +56,13 @@ class PodRacer:
         touch_delta = rect(CP_GRAVITY - CP_RADIUS, phase(along))
         return target - touch_delta
 
-    def drift_towards(self, target) -> tuple[complex, int]:
+    def drift_towards_checkpoint(self):
+        target = self.target
         thrust = 100
         distance = abs(self.position - self.cp)
 
-        target_dev = remainder(phase(target - self.position) - self.v_angle, pi)
-        next_cp_dev = remainder(self.v_angle - phase(self.next_cp - self.cp), pi)
+        target_dev = remainder(phase(target - self.position) - self.v_angle, 2 * pi)
+        next_cp_dev = remainder(self.v_angle - phase(self.next_cp - self.cp), 2 * pi)
 
         if distance <= sum(self.speed_trace):
             if self.speed_trace[-1] > 300:
@@ -83,28 +77,47 @@ class PodRacer:
                 thrust = 0 if self.speed_trace[-1] > 250 else 33
             elif abs(target_dev) > pi / 2:
                 thrust = 66
-        target = self.touch(target)
-        return target, thrust
+
+        self.target = self.touch(target)
+        self.thrust = thrust
+
+    def follow_the_path(self, segments, path) -> None:
+        bezier_target = complex(
+            *find_nearest_entry(self.position, self.angle, self.cpid, segments, path)
+        )
+
+        distance = int(abs(bezier_target - self.cp))
+
+        print(
+            f"{self.name}> {to_coords(bezier_target)} to cp: {distance}",
+            file=sys.stderr,
+        )
+
+        self.target = self.cp if distance < 2000 else bezier_target
+        self.thrust = 100
 
     def correct_rotation(self) -> complex:
         facing = remainder(self.angle, 2 * pi)
         t_angle = phase(self.target - self.position)
         target_dev = remainder(t_angle - self.v_angle, 2 * pi)
         desired = self.target - self.position
+
         correction = clamp(target_dev / 4, -pi / 20, pi / 20)
+
         # print(f"{self.name}> {humangle(facing)}, {humangle(self.v_angle)}, {humangle(t_angle)}", file=sys.stderr)
         # print(f"{self.name}> {humangle(target_dev)} Correction: {humangle(correction)}", file=sys.stderr)
+
         rotate = rect(1, correction)
         return desired * rotate + self.position
 
     @property
     def next_position(self):
-        if self.thurst == "SHIELD":
+        if self.thrust == "SHIELD":
             thrust = 0
-        elif self.thurst == "BOOST":
+        elif self.thrust == "BOOST":
             thrust = 650
         else:
-            thrust = self.thurst
+            thrust = self.thrust
 
         t_angle = phase(self.target - self.position)
         dev = t_angle - self.angle
@@ -118,23 +131,25 @@ class PodRacer:
 
     def defend_on_collision(self, opponents: Iterable[PodRacer]):
         for opp in opponents:
+            distance = int(round(abs(self.position - opp.position)))
             next_dist = int(round(abs(self.next_position - opp.next_position)))
-            speed_diff = abs(self.speed_trace[-1] - opp.speed_trace[-1])
-            collision_angle = remainder(self.v_angle - opp.v_angle, pi)
+            speed_diff = abs(self.velocity - opp.velocity)
 
-            if next_dist <= 900 and (abs(collision_angle) > pi / 4 or speed_diff > 250):
-                print(
-                    f"--- {self.name} vs {opp.name} => {next_dist} ---", file=sys.stderr
-                )
-                print(
-                    f"{self.speed_trace[-1]}m/s vs {opp.speed_trace[-1]} m/s",
-                    file=sys.stderr,
-                )
-                print(
-                    f"Collision angle: {int(degrees(collision_angle))}",
-                    file=sys.stderr,
-                )
-                self.thurst = "SHIELD"
+            # if next_dist < 2000:
+            #     print(
+            #         f"--- {self.name} vs {opp.name} => {distance} .. {next_dist} ---", file=sys.stderr
+            #     )
+            #     print(
+            #         f"{to_coords(self.velocity)} - {to_coords(opp.velocity)} => {int(speed_diff)}",
+            #         file=sys.stderr,
+            #     )
+            #     print(
+            #         f"Collision angle: {int(degrees(collision_angle))}",
+            #         file=sys.stderr,
+            #     )
+
+            if next_dist <= 888 and speed_diff > 250:
+                self.thrust = "SHIELD"
                 return
 
     def can_boost(self) -> bool:
@@ -149,20 +164,20 @@ class PodRacer:
 
     def boost(self) -> None:
         if self.has_boost:
-            self.thurst = "BOOST"
+            self.thrust = "BOOST"
             self.has_boost = False
 
     def __str__(self):
         return (
             f"{int(round(self.target.real))} "
             f"{int(round(self.target.imag))} "
-            f"{self.thurst}"
+            f"{self.thrust}"
         )
 
     def __repr__(self):
         return (
             f"F<:{self.facing}° "
-            f"V:{int(round(abs(self.velocity))):4} m/s O:{self.thurst:4} "
+            f"V:{int(round(abs(self.velocity))):4} m/s O:{self.thrust:4} "
             f"D:{int(round(abs(self.cp - self.position))):4} m "
             f"has boost: {self.has_boost}"
         )
@@ -222,15 +237,16 @@ def main():
     segments = build_optimal_segments(layout["checkpoints"])
     opath = build_bezier_path(segments)
 
-    print(f"{segments=}", file=sys.stderr)
-    print(f"{opath=}", file=sys.stderr)
-
     # first turn
     pods = read_all_pods()
     me1 = PodRacer("me1", pods["me_first"], layout["checkpoints"])
     me2 = PodRacer("me2", pods["me_second"], layout["checkpoints"])
     him1 = PodRacer("him1", pods["him_first"], layout["checkpoints"])
     him2 = PodRacer("him2", pods["him_second"], layout["checkpoints"])
+
+    # take the checkpoint as first target
+    # me1.drift_towards_checkpoint()
+    # me2.drift_towards_checkpoint()
 
     print(repr(me1), file=sys.stderr)
     print(repr(me2), file=sys.stderr)
@@ -245,8 +261,13 @@ def main():
         him1.update(pods["him_first"], layout["checkpoints"])
         him2.update(pods["him_second"], layout["checkpoints"])
 
+        me1.drift_towards_checkpoint()
         # me1.follow_the_path(segments, opath)
+        me1.correct_rotation()
+
+        me2.drift_towards_checkpoint()
         # me2.follow_the_path(segments, opath)
+        # me2.correct_rotation()
 
         # TODO:
         # - evaluate, can we reach the target [postponed]
