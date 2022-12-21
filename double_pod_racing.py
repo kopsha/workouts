@@ -110,7 +110,7 @@ class PodRacer:
             cp_reach[acc] = cp_dist
 
         start = False
-        for acc, dist in (cp_reach.items()):
+        for acc, dist in cp_reach.items():
             if dist < (CP_RADIUS - CP_GRAVITY):
                 # start drifting at highest acc
                 start = True
@@ -144,7 +144,7 @@ class PodRacer:
                 t_angle = phase(self.cp - self.position)
                 deviation = abs(remainder(t_angle - self.v_angle, 2 * pi))
                 print(f"{self.name}> {humangle(deviation)}", file=sys.stderr)
-                if deviation > 2*pi / 3:
+                if deviation > 2 * pi / 3:
                     thrust = 25
                 if deviation > pi / 2:
                     thrust = 50
@@ -165,7 +165,6 @@ class PodRacer:
         towards_cp = min(cp_reach, key=cp_reach.get)
 
         print(self.name, "towards cp", towards_cp, file=sys.stderr)
-
 
     def defend_on_collision(self, opponents: Iterable[PodRacer]):
         for opp in opponents:
@@ -317,6 +316,8 @@ def main():
 
         print(me1)
         print(me2)
+
+
 # ---- cut here ----
 
 

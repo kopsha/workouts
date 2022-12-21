@@ -76,10 +76,34 @@ def humangle(alpha: float):
     return f"{int(round(degrees(alpha)))}°"
 
 
-def lerp(a: Coord, b: Coord, t: float) -> Coord:
-    rx = (1 - t) * a.x + t * b.x
-    ry = (1 - t) * a.y + t * b.y
-    return Coord(rx, ry)
+def thrust_value(a_thrust: int | str) -> int:
+    if a_thrust == "SHIELD":
+        thrust = 0
+    elif a_thrust == "BOOST":
+        thrust = 650
+    else:
+        thrust = int(a_thrust)
+    return thrust
+
+
+def lerp(a: float, b: float, t: float) -> float:
+    """Linear interpolate on the scale given by a to b, using t as the point on that scale.
+    Examples
+    --------
+        50 == lerp(0, 100, 0.5)
+        4.2 == lerp(1, 5, 0.8)
+    """
+    return (1 - t) * a + t * b
+
+
+def inv_lerp(a: float, b: float, v: float) -> float:
+    """Inverse Linar Interpolation, get the fraction between a and b on which v resides.
+    Examples
+    --------
+        0.5 == inv_lerp(0, 100, 50)
+        0.8 == inv_lerp(1, 5, 4.2)
+    """
+    return (v - a) / (b - a)
 
 
 def quadratic(a: float, b: float, c: float, t: float) -> float:
