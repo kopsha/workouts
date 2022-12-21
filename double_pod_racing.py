@@ -22,8 +22,10 @@ class PodRacer:
     def __init__(self, name, pod: Pod, checkpoints: list[Coord]) -> None:
         self.name = name
         self.has_boost = True
-        self.speed_trace = deque(maxlen=5)
+        self.speed_trace = deque(maxlen=4)
         self.update(pod, checkpoints)
+        self.drift_count = 0
+        self.drift_thrust = 0
 
     def update(self, pod: Pod, checkpoints: list[Coord]) -> None:
         self.last_position = getattr(self, "position", None)
@@ -49,50 +51,14 @@ class PodRacer:
         touch_delta = rect(CP_GRAVITY - CP_RADIUS, phase(along))
         return target - touch_delta
 
-    def drift_towards_checkpoint(self):
-        target = self.target
-        thrust = 100
-        distance = abs(self.position - self.cp)
-
-        target_dev = remainder(phase(target - self.position) - self.v_angle, 2 * pi)
-        next_cp_dev = remainder(self.v_angle - phase(self.next_cp - self.cp), 2 * pi)
-
-        if distance <= sum(self.speed_trace):
-            if self.speed_trace[-1] > 300:
-                # change target sooner to allow rotation
-                target = self.next_cp
-            if abs(next_cp_dev) > pi / 2:
-                thrust = 0
-            elif abs(next_cp_dev) > pi / 4:
-                thrust = 50
-        else:
-            if abs(target_dev) > 3 * pi / 4:
-                thrust = 0 if self.speed_trace[-1] > 250 else 33
-            elif abs(target_dev) > pi / 2:
-                thrust = 66
-
-        self.target = self.touch(target)
-        self.thrust = thrust
-
-    def correct_rotation(self) -> complex:
-        facing = remainder(self.angle, 2 * pi)
+    def oversteer_towards_target(self) -> None:
         t_angle = phase(self.target - self.position)
-        target_dev = remainder(t_angle - self.v_angle, 2 * pi)
+        deviation = remainder(t_angle - self.v_angle, 2 * pi)
         desired = self.target - self.position
 
-        correction = clamp(target_dev / 4, -pi / 20, pi / 20)
-
-        print(
-            f"{self.name}> {humangle(facing)}, {humangle(self.v_angle)}, {humangle(t_angle)}",
-            file=sys.stderr,
-        )
-        print(
-            f"{self.name}> {humangle(target_dev)} Correction: {humangle(correction)}",
-            file=sys.stderr,
-        )
-
-        rotate = rect(1, correction)
-        return desired * rotate + self.position
+        correction = clamp(deviation / 4, -pi / 10, pi / 10)
+        new_target = desired * rect(1, correction) + self.position
+        self.target = new_target
 
     @property
     def next_position(self):
@@ -112,6 +78,94 @@ class PodRacer:
         new_position = self.position + movement
 
         return new_position
+
+    def projection(self, use_target, use_thrust, steps=3):
+        if use_thrust == "SHIELD":
+            thrust = 0
+        elif use_thrust == "BOOST":
+            thrust = 650
+        else:
+            thrust = int(use_thrust)
+
+        position = self.position
+        velocity = self.velocity
+        angle = self.angle
+
+        for _ in range(steps):
+            t_angle = phase(use_target - position)
+            deviation = remainder(t_angle - angle, 2 * pi)
+            angle += clamp(deviation, -pi / 10, pi / 10)
+            movement = velocity + rect(thrust, angle)
+            position += movement
+            velocity = 0.85 * movement
+
+        return position, angle
+
+    def pick_drift_thrust(self):
+
+        cp_reach = dict()
+        for acc in range(0, 101, 10):
+            pos, _ = self.projected_position(self.next_cp, acc)
+            cp_dist = int(abs(pos - self.cp))
+            cp_reach[acc] = cp_dist
+
+        start = False
+        for acc, dist in (cp_reach.items()):
+            if dist < (CP_RADIUS - CP_GRAVITY):
+                # start drifting at highest acc
+                start = True
+                thrust = acc
+                self.drift_count = 3
+                # print(f"{self.name} drifts >> {acc} => {dist}", file=sys.stderr)
+                # print(f"{to_coords(self.projected_position(self.next_cp, acc))}", file=sys.stderr)
+                break
+
+        else:
+            # print("no drift needed", file=sys.stderr)
+            thrust = 100
+
+        return start, thrust
+
+    def drift_towards_checkpoint(self):
+        thrust = 100
+        target = self.cp
+
+        if self.drift_count:
+            target = self.next_cp
+            thrust = self.drift_thrust
+            self.drift_count -= 1
+        else:
+            should_drift, drift_thrust = self.pick_drift_thrust()
+            if should_drift:
+                target = self.next_cp
+                self.drift_thrust = thrust = drift_thrust
+                self.drift_count = 3
+            else:
+                t_angle = phase(self.cp - self.position)
+                deviation = abs(remainder(t_angle - self.v_angle, 2 * pi))
+                print(f"{self.name}> {humangle(deviation)}", file=sys.stderr)
+                if deviation > 2*pi / 3:
+                    thrust = 25
+                if deviation > pi / 2:
+                    thrust = 50
+
+        self.target = self.touch(target)
+        self.thrust = thrust
+
+    def evaluate(self):
+        # tactics: full_throtle, fine_throtle, drift, break
+        cp_reach = dict()
+
+        for acc in range(0, 101, 10):
+            pos, angle = self.projected_position(self.cp, acc)
+            cp_dist = int(abs(pos - self.cp))
+            cp_reach[acc] = cp_dist, angle
+
+        print(cp_reach, file=sys.stderr)
+        towards_cp = min(cp_reach, key=cp_reach.get)
+
+        print(self.name, "towards cp", towards_cp, file=sys.stderr)
+
 
     def defend_on_collision(self, opponents: Iterable[PodRacer]):
         for opp in opponents:
@@ -146,9 +200,10 @@ class PodRacer:
 
     def __repr__(self):
         return (
-            f"F<:{self.facing}° "
+            f"TD:{int(round(abs(self.cp - self.position))):4} m "
             f"V:{int(round(abs(self.velocity))):4} m/s O:{self.thrust:4} "
-            f"D:{int(round(abs(self.cp - self.position))):4} m "
+            f"<):{self.facing}° "
+            f"drift: {self.drift_count} "
             f"has boost: {self.has_boost}"
         )
 
@@ -222,16 +277,17 @@ def main():
     hold_boost = 0
     while True:
         pods = read_all_pods()
+
         me1.update(pods["me_first"], layout["checkpoints"])
         me2.update(pods["me_second"], layout["checkpoints"])
         him1.update(pods["him_first"], layout["checkpoints"])
         him2.update(pods["him_second"], layout["checkpoints"])
 
         me1.drift_towards_checkpoint()
-        me1.correct_rotation()
+        me1.oversteer_towards_target()
 
         me2.drift_towards_checkpoint()
-        # me2.correct_rotation()
+        me2.oversteer_towards_target()
 
         # TODO:
         # - evaluate, can we reach the target [postponed]
@@ -257,10 +313,102 @@ def main():
         print(repr(me1), file=sys.stderr)
         print(repr(me2), file=sys.stderr)
 
+        me1.evaluate()
+
         print(me1)
         print(me2)
+# ---- cut here ----
+
+
+def alt_main():
+    from pod_utils import SAMPLE5
+
+    brake_ref = [
+        (-504, 96),
+        (-428, 81),
+        (-363, 68),
+        (-308, 57),
+        (-261, 48),
+        (-221, 40),
+        (-187, 34),
+        (-158, 28),
+        (-134, 23),
+        (-113, 19),
+        (-96, 16),
+        (-81, 13),
+        (-68, 11),
+        (-57, 9),
+        (-48, 7),
+        (-40, 5),
+        (-34, 4),
+        (-28, 3),
+        (-23, 2),
+        (-19, 1),
+        (-16, 0),
+        (-13, 0),
+        (-11, 0),
+        (-9, 0),
+        (-7, 0),
+        (-5, 0),
+        (-4, 0),
+        (-3, 0),
+        (-2, 0),
+        (-1, 0),
+        (0, 0),
+    ]
+
+    shield_ref = [
+        (-504, 96),
+        (-428, 81),
+        (-363, 68),
+        (-308, 57),
+        (-261, 48),
+        (-221, 40),
+        (-187, 34),
+        (-158, 28),
+        (-134, 23),
+        (-113, 19),
+        (-96, 16),
+        (-81, 13),
+        (-68, 11),
+        (-57, 9),
+        (-48, 7),
+        (-40, 5),
+        (-34, 4),
+        (-28, 3),
+        (-23, 2),
+        (-19, 1),
+        (-16, 0),
+        (-13, 0),
+        (-11, 0),
+        (-9, 0),
+        (-7, 0),
+        (-5, 0),
+        (-4, 0),
+        (-3, 0),
+        (-2, 0),
+        (-1, 0),
+        (0, 0),
+    ]
+
+    layout = SAMPLE5
+    pc = Pod(x=0, y=0, vx=404, vy=0, angle=0, cpid=1)
+    pod = PodRacer("me", pc, layout["checkpoints"])
+
+    pod.target = complex(16000, 0)
+    pod.thrust = 100
+
+    pod.velocity = 504
+    limiter = 0
+    while abs(pod.velocity) > 1 and limiter < 20:
+        pod.thrust = 50
+        print(to_coords(pod.position), ">>", to_coords(pod.velocity))
+        print("\t", to_coords(pod.projected_position(pod.target, pod.thrust)))
+        new_position = pod.next_position
+        pod.velocity = (pod.next_position - pod.position) * 0.85
+        pod.position = new_position
+        limiter += 1
 
 
 if __name__ == "__main__":
-    main()
-# ---- cut here ----
+    alt_main()

@@ -8,6 +8,60 @@ import numpy as np
 
 Coord = namedtuple("Coord", ["x", "y"])
 BEZIER_DETAIL = 8
+SAMPLE1 = {
+    "lap_count": 3,
+    "cp_count": 5,
+    "checkpoints": [
+        Coord(13050, 1919),
+        Coord(6554, 7863),
+        Coord(7490, 1379),
+        Coord(12724, 7080),
+        Coord(4053, 4660),
+    ],
+}
+SAMPLE2 = {
+    "lap_count": 3,
+    "cp_count": 6,
+    "checkpoints": [
+        Coord(x=3030, y=5188),
+        Coord(x=6253, y=7759),
+        Coord(x=14105, y=7752),
+        Coord(x=13861, y=1240),
+        Coord(x=10255, y=4897),
+        Coord(x=6080, y=2172),
+    ],
+}
+SAMPLE3 = {
+    "lap_count": 3,
+    "cp_count": 3,
+    "checkpoints": [
+        Coord(x=9098, y=1847),
+        Coord(x=5007, y=5276),
+        Coord(x=11497, y=6055),
+    ],
+}
+SAMPLE4 = {
+    "lap_count": 3,
+    "cp_count": 4,
+    "checkpoints": [
+        Coord(x=5661, y=2571),
+        Coord(x=4114, y=7395),
+        Coord(x=13518, y=2355),
+        Coord(x=12948, y=7198),
+    ],
+}
+SAMPLE5 = {
+    "lap_count": 3,
+    "cp_count": 6,
+    "checkpoints": [
+        Coord(x=3296, y=7255),
+        Coord(x=14594, y=7682),
+        Coord(x=10559, y=5045),
+        Coord(x=13114, y=2310),
+        Coord(x=4549, y=2172),
+        Coord(x=7373, y=4959),
+    ],
+}
 
 
 def clamp(value: float, left: float, right: float):
