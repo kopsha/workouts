@@ -6,62 +6,9 @@ from collections import namedtuple
 import numpy as np
 
 
+Pod = namedtuple("Pod", ["x", "y", "vx", "vy", "angle", "cpid"])
 Coord = namedtuple("Coord", ["x", "y"])
 BEZIER_DETAIL = 8
-SAMPLE1 = {
-    "lap_count": 3,
-    "cp_count": 5,
-    "checkpoints": [
-        Coord(13050, 1919),
-        Coord(6554, 7863),
-        Coord(7490, 1379),
-        Coord(12724, 7080),
-        Coord(4053, 4660),
-    ],
-}
-SAMPLE2 = {
-    "lap_count": 3,
-    "cp_count": 6,
-    "checkpoints": [
-        Coord(x=3030, y=5188),
-        Coord(x=6253, y=7759),
-        Coord(x=14105, y=7752),
-        Coord(x=13861, y=1240),
-        Coord(x=10255, y=4897),
-        Coord(x=6080, y=2172),
-    ],
-}
-SAMPLE3 = {
-    "lap_count": 3,
-    "cp_count": 3,
-    "checkpoints": [
-        Coord(x=9098, y=1847),
-        Coord(x=5007, y=5276),
-        Coord(x=11497, y=6055),
-    ],
-}
-SAMPLE4 = {
-    "lap_count": 3,
-    "cp_count": 4,
-    "checkpoints": [
-        Coord(x=5661, y=2571),
-        Coord(x=4114, y=7395),
-        Coord(x=13518, y=2355),
-        Coord(x=12948, y=7198),
-    ],
-}
-SAMPLE5 = {
-    "lap_count": 3,
-    "cp_count": 6,
-    "checkpoints": [
-        Coord(x=3296, y=7255),
-        Coord(x=14594, y=7682),
-        Coord(x=10559, y=5045),
-        Coord(x=13114, y=2310),
-        Coord(x=4549, y=2172),
-        Coord(x=7373, y=4959),
-    ],
-}
 
 
 def clamp(value: float, left: float, right: float):
@@ -135,6 +82,53 @@ def cubic_bezier(a: Coord, b: Coord, c: Coord, d: Coord) -> list[Coord]:
         for t in np.linspace(0, 1, BEZIER_DETAIL)
     ]
     return curve
+
+
+def read_race_layout() -> dict:
+    """
+    Initialization input
+    Line 1: `laps`: the number of laps to complete the race.
+    Line 2: `checkpoint_count`: the number of checkpoints in the circuit.
+    Next `checkpoint_count` lines: 2 integers (x, y) for the coordinates of
+    each checkpoint.
+    """
+    lap_count = int(input())
+    cp_count = int(input())
+    checkpoints = [Coord(*map(int, input().split())) for _ in range(cp_count)]
+
+    race_layout = dict(
+        lap_count=lap_count,
+        cp_count=cp_count,
+        checkpoints=checkpoints,
+    )
+
+    print(race_layout, file=sys.stderr)
+
+    return race_layout
+
+
+def read_pods() -> dict:
+    """
+    Read input for one game turn
+    First 2 lines: Your two pods.
+    Next 2 lines: The opponent's pods.
+    Each pod is represented by:
+    - 6 integers, (x, y) for the position
+    - (vx, vy) for the speed vector
+    - angle for the rotation angle in degrees
+    - nextCheckPointId for the number of the next checkpoint the pod must go through.
+    """
+    me_first = Pod(*map(int, input().split()))
+    me_second = Pod(*map(int, input().split()))
+    him_first = Pod(*map(int, input().split()))
+    him_second = Pod(*map(int, input().split()))
+
+    return dict(
+        me_first=me_first,
+        me_second=me_second,
+        him_first=him_first,
+        him_second=him_second,
+    )
 
 
 def pick_control_points(
@@ -222,3 +216,138 @@ def find_nearest_entry(position, facing, cpid, segments, curve):
             nearest = i
 
     return curve[nearest]
+
+
+## Captured samples
+SAMPLE1 = {
+    "lap_count": 3,
+    "cp_count": 5,
+    "checkpoints": [
+        Coord(13050, 1919),
+        Coord(6554, 7863),
+        Coord(7490, 1379),
+        Coord(12724, 7080),
+        Coord(4053, 4660),
+    ],
+}
+SAMPLE2 = {
+    "lap_count": 3,
+    "cp_count": 6,
+    "checkpoints": [
+        Coord(x=3030, y=5188),
+        Coord(x=6253, y=7759),
+        Coord(x=14105, y=7752),
+        Coord(x=13861, y=1240),
+        Coord(x=10255, y=4897),
+        Coord(x=6080, y=2172),
+    ],
+}
+SAMPLE3 = {
+    "lap_count": 3,
+    "cp_count": 3,
+    "checkpoints": [
+        Coord(x=9098, y=1847),
+        Coord(x=5007, y=5276),
+        Coord(x=11497, y=6055),
+    ],
+}
+SAMPLE4 = {
+    "lap_count": 3,
+    "cp_count": 4,
+    "checkpoints": [
+        Coord(x=5661, y=2571),
+        Coord(x=4114, y=7395),
+        Coord(x=13518, y=2355),
+        Coord(x=12948, y=7198),
+    ],
+}
+SAMPLE5 = {
+    "lap_count": 3,
+    "cp_count": 6,
+    "checkpoints": [
+        Coord(x=3296, y=7255),
+        Coord(x=14594, y=7682),
+        Coord(x=10559, y=5045),
+        Coord(x=13114, y=2310),
+        Coord(x=4549, y=2172),
+        Coord(x=7373, y=4959),
+    ],
+}
+SAMPLE6 = {
+    "lap_count": 3,
+    "cp_count": 6,
+    "checkpoints": [
+        Coord(x=7666, y=5993),
+        Coord(x=3169, y=7518),
+        Coord(x=9505, y=4407),
+        Coord(x=14498, y=7755),
+        Coord(x=6335, y=4272),
+        Coord(x=7786, y=852),
+    ],
+}
+BRAKE_PROFILE = [
+    (-504, 96),
+    (-428, 81),
+    (-363, 68),
+    (-308, 57),
+    (-261, 48),
+    (-221, 40),
+    (-187, 34),
+    (-158, 28),
+    (-134, 23),
+    (-113, 19),
+    (-96, 16),
+    (-81, 13),
+    (-68, 11),
+    (-57, 9),
+    (-48, 7),
+    (-40, 5),
+    (-34, 4),
+    (-28, 3),
+    (-23, 2),
+    (-19, 1),
+    (-16, 0),
+    (-13, 0),
+    (-11, 0),
+    (-9, 0),
+    (-7, 0),
+    (-5, 0),
+    (-4, 0),
+    (-3, 0),
+    (-2, 0),
+    (-1, 0),
+    (0, 0),
+]
+SHIELD_PROFILE = [
+    (-504, 96),
+    (-428, 81),
+    (-363, 68),
+    (-308, 57),
+    (-261, 48),
+    (-221, 40),
+    (-187, 34),
+    (-158, 28),
+    (-134, 23),
+    (-113, 19),
+    (-96, 16),
+    (-81, 13),
+    (-68, 11),
+    (-57, 9),
+    (-48, 7),
+    (-40, 5),
+    (-34, 4),
+    (-28, 3),
+    (-23, 2),
+    (-19, 1),
+    (-16, 0),
+    (-13, 0),
+    (-11, 0),
+    (-9, 0),
+    (-7, 0),
+    (-5, 0),
+    (-4, 0),
+    (-3, 0),
+    (-2, 0),
+    (-1, 0),
+    (0, 0),
+]

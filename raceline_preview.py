@@ -4,15 +4,11 @@ import pygame
 from random import randint
 from cmath import phase, pi
 from math import degrees, remainder
-from numpy import arange
 
 from picasso import PicassoEngine
 from pod_utils import (
     build_optimal_segments,
     build_bezier_path,
-    pick_control_points,
-    to_coords,
-    cubic_bezier,
     Coord,
     BEZIER_DETAIL,
 )
@@ -25,61 +21,6 @@ RED = pygame.Color(255, 31, 31)
 GREEN = pygame.Color(31, 255, 31)
 YELLOW = pygame.Color(255, 255, 63)
 WHITE = pygame.Color(255, 255, 255)
-
-SAMPLE1 = {
-    "lap_count": 3,
-    "cp_count": 5,
-    "checkpoints": [
-        Coord(13050, 1919),
-        Coord(6554, 7863),
-        Coord(7490, 1379),
-        Coord(12724, 7080),
-        Coord(4053, 4660),
-    ],
-}
-SAMPLE2 = {
-    "lap_count": 3,
-    "cp_count": 6,
-    "checkpoints": [
-        Coord(x=3030, y=5188),
-        Coord(x=6253, y=7759),
-        Coord(x=14105, y=7752),
-        Coord(x=13861, y=1240),
-        Coord(x=10255, y=4897),
-        Coord(x=6080, y=2172),
-    ],
-}
-SAMPLE3 = {
-    "lap_count": 3,
-    "cp_count": 3,
-    "checkpoints": [
-        Coord(x=9098, y=1847),
-        Coord(x=5007, y=5276),
-        Coord(x=11497, y=6055),
-    ],
-}
-SAMPLE4 = {
-    "lap_count": 3,
-    "cp_count": 4,
-    "checkpoints": [
-        Coord(x=5661, y=2571),
-        Coord(x=4114, y=7395),
-        Coord(x=13518, y=2355),
-        Coord(x=12948, y=7198),
-    ],
-}
-SAMPLE5 = {
-    "lap_count": 3,
-    "cp_count": 6,
-    "checkpoints": [
-        Coord(x=3296, y=7255),
-        Coord(x=14594, y=7682),
-        Coord(x=10559, y=5045),
-        Coord(x=13114, y=2310),
-        Coord(x=4549, y=2172),
-        Coord(x=7373, y=4959),
-    ],
-}
 
 
 class RacelinePainter(PicassoEngine):
@@ -230,14 +171,12 @@ class RacelinePainter(PicassoEngine):
 
 
 def main():
-    with RacelinePainter(layout=SAMPLE5["checkpoints"]) as engine:
+    from pod_utils import SAMPLE6 as SAMPLE
+
+    with RacelinePainter(layout=SAMPLE["checkpoints"]) as engine:
         engine.post_init()
         engine.run()
 
 
 if __name__ == "__main__":
-    # for a in arange(0, 2*pi + 0.0001, pi / 18):
-    #     r1 = remainder(a, pi)
-    #     r2 = remainder(a, 2*pi)
-    #     print(int(degrees(a)), int(degrees(r1)), int(degrees(r2)))
     main()
