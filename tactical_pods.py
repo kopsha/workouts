@@ -1,4 +1,5 @@
-from typing import Union
+from __future__ import annotations
+from typing import Union, Iterable
 import sys
 
 from math import degrees, radians, remainder
@@ -123,6 +124,8 @@ def read_pods() -> dict:
         him_first=him_first,
         him_second=him_second,
     )
+
+
 ## --- pod_utils: end ---
 
 
@@ -142,6 +145,8 @@ class PodRacer:
 
     def update(self, pod: Pod, checkpoints: list[Coord]) -> None:
         self.last_position = self.position
+        if self.shield_count:
+            pod.shield_count -= 1
 
         self.cpid = pod.cpid
         self.position = complex(pod.x, pod.y)
@@ -155,7 +160,7 @@ class PodRacer:
         # set dummy target
         self.thrust = 100
         self.target = self.cp
-    
+
     @property
     def target_distance(self) -> float:
         return abs(self.cp - self.position)
@@ -175,6 +180,19 @@ class PodRacer:
         if self.has_boost:
             self.thrust = "BOOST"
             self.has_boost = False
+
+    def shield(self) -> None:
+        self.shield_count = 3
+        self.thrust = "SHIELD"
+
+    def defend_on_collision(self, opponents: Iterable[PodRacer]):
+        for opp in opponents:
+            next_dist = int(round(abs(self.next_position - opp.next_position)))
+            speed_diff = abs(self.velocity - opp.velocity)
+
+            if next_dist <= 888 and speed_diff > 233:
+                self.shield()
+                return
 
     @property
     def next_position(self) -> complex:
@@ -198,7 +216,7 @@ class PodRacer:
     ) -> tuple[int, complex, float, complex]:
         """Will stop if target is reached sooner than max_steps"""
 
-        thrust = thrust_value(use_thrust)
+        thrust = 0 if self.shield_count else thrust_value(use_thrust)
         position = self.position
         velocity = self.velocity
         angle = self.angle
@@ -230,7 +248,7 @@ class PodRacer:
     ) -> tuple[Union[int, None], complex, float, complex]:
         """Will stop if target is reached sooner than max_steps"""
 
-        thrust = thrust_value(use_thrust)
+        thrust = 0 if self.shield_count else thrust_value(use_thrust)
         position = self.position
         velocity = self.velocity
         angle = self.angle
@@ -260,14 +278,17 @@ class PodRacer:
                 break
 
         return step, position, angle, velocity
+
+
 ## --- PodRacer: end ---
 
 ## --- more utils ---
-def touch(position:complex, target: complex) -> complex:
+def touch(position: complex, target: complex) -> complex:
     """Will barely touch the checkpoint"""
     along = position - target
     touch_delta = rect(CP_GRAVITY - CP_RADIUS, phase(along))
     return target - touch_delta
+
 
 def can_drift(pod: PodRacer) -> tuple[complex, Union[int, str]]:
     far_enough = abs(pod.velocity) * 8
@@ -275,30 +296,33 @@ def can_drift(pod: PodRacer) -> tuple[complex, Union[int, str]]:
         return touch(pod.position, pod.target), pod.thrust
 
     if pod.shield_count:
-        pod.shield_count -= 1
-        touch(pod.cp, pod.next_cp), 0  # drift without thrust
+        return touch(pod.position, pod.target), pod.thrust
 
     # priority 1: reach cp
-    step, _, _, _ = pod.projection(pod.cp, 100)
-    if step == 5:
-        print(f"Reaching cp in {step} steps.", file=sys.stderr)
+    steps, _, _, _ = pod.projection(pod.cp, 100)
+    if steps == 5:
+        print(f"Reaching cp in {steps} steps.", file=sys.stderr)
         return touch(pod.position, pod.target), pod.thrust
 
     # priority 2: drift towards next cp
-    drift_step, _, _, _ = pod.drift_projection(pod.cp, 0, pod.next_cp)
-    if drift_step is not None and drift_step <= 3:
-        print(f"Drifting for {drift_step} steps", file=sys.stderr)
+    drift_steps, _, _, _ = pod.drift_projection(pod.cp, 50, pod.next_cp)
+    if drift_steps is not None and drift_steps <= steps:
+        print(f"Drifting for {drift_steps} steps", file=sys.stderr)
         pod.shield_count = 3
-        return touch(pod.cp, pod.next_cp), "SHIELD"
+        return touch(pod.cp, pod.next_cp), 50
 
-    print(f"Reaching cp in {step} steps. Drifting {drift_step} steps", file=sys.stderr)
+    print(
+        f"Reaching cp in {steps} steps. Drifting {drift_steps} steps", file=sys.stderr
+    )
     return touch(pod.position, pod.target), pod.thrust
+
 
 def drift(my_pods: list[PodRacer]):
     for pod in my_pods:
         target, thrust = can_drift(pod)
         pod.target = target
         pod.thrust = thrust
+
 
 def main():
     layout = read_race_layout()
@@ -321,7 +345,6 @@ def main():
     print(me1)
     print(me2)
 
-    hold_boost = 0
     while True:
         pods = read_pods()
 
@@ -331,6 +354,7 @@ def main():
         him2.update(pods["him_second"], layout["checkpoints"])
 
         drift(my_pods)
+        map(lambda pod: pod.defend_on_collision(his_pods), my_pods)
 
         print(repr(me1), file=sys.stderr)
         print(repr(me2), file=sys.stderr)
