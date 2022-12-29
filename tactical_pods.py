@@ -295,32 +295,33 @@ def can_drift(pod: PodRacer) -> tuple[complex, Union[int, str]]:
     if pod.target_distance > far_enough or pod.shield_count:
         return pod.cp, pod.thrust
 
-    # priority 1: reach cp
     best_angle = phase(pod.next_cp - pod.cp)
     choose = dict()
     for acc in range(0, 100, 20):
-        steps, pos, ang, vel = pod.projection(pod.cp, acc)
-        if steps < 5:
-            dist = abs(pod.cp - pos)
-            dev = abs(best_angle - ang)
-            choose[acc] = steps, dist, dev
+        ss, pos, ang, _ = pod.projection(pod.cp, acc)
+        dss, dpos, dang, _ = pod.drift_projection(pod.cp, acc, pod.next_cp)
 
-    # priority 2: drift towards next cp
-    for acc in range(5, 100, 20):
-        steps, pos, ang, vel = pod.drift_projection(pod.cp, acc, pod.next_cp)
-        if steps is not None and steps < 5:
+        if ss < 5:
             dist = abs(pod.cp - pos)
-            dev = abs(best_angle - ang)
-            choose[acc] = steps, dist, dev
+            deviation = remainder(best_angle - ang, 2 * pi)
+            dev = degrees(abs(deviation))
+            choose[acc] = ss, dist * dev, False, dev
 
-    print(choose, file=sys.stderr)
+        if dss is not None and dss < 5:
+            dist = abs(pod.cp - dpos)
+            deviation = remainder(best_angle - dang, 2 * pi)
+            dev = degrees(abs(deviation))
+            choose[acc] = ss, dist * dev, True, dev
+
+    # for k, v in choose.items():
+    #     print(k,":", v, file=sys.stderr)
     if choose:
-        best = max(
-            choose, key=lambda k: (choose[k][0], choose[k][1] * (choose[k][2] ** 2))
-        )
-        print(f"{best}: {choose[best]}", file=sys.stderr)
+        best = min(choose, key=lambda k: choose[k])
+        # print(
+        #     f"-=> {best}: {choose[best]}", file=sys.stderr
+        # )
 
-        return pod.next_cp if best % 5 == 0 else pod.cp, best
+        return pod.next_cp if choose[best][2] else pod.cp, best
 
     return pod.cp, pod.thrust
 
