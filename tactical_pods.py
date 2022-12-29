@@ -85,13 +85,13 @@ def dot(a: complex, b: complex) -> float:
     return a.real * b.real + a.imag * b.imag
 
 
-def aim_ahead(pos_delta: complex, velo_delta: complex, speed: float) -> float:
+def aim_ahead(pos_delta: complex, velo_delta: complex, speed: float) -> float | None:
     """
     Computes time delta when the pod will hit target, or None if impossible
     """
     # Quadratic equation: a*t^2 + b*t + c = 0
-    a = dot(velo_delta, velo_delta)
-    b = dot(velo_delta, speed * speed) * 2
+    a = dot(velo_delta, velo_delta) - speed ** 2
+    b = dot(velo_delta, pos_delta) * 2
     c = dot(pos_delta, pos_delta)
     disc = b * b - 4 * a * c
 
@@ -101,7 +101,10 @@ def aim_ahead(pos_delta: complex, velo_delta: complex, speed: float) -> float:
     x1 = 2 * c / (sqrt(disc) - b)
     x2 = 2 * c / (-sqrt(disc) - b)
 
-    return min(x1, x2)
+    print(a, b, c, file=sys.stderr)
+    print(x1, x2, file=sys.stderr)
+
+    return x1
 
 
 def read_race_layout() -> dict:
@@ -347,10 +350,13 @@ class PodRacer:
         pos_delta = opp.position - self.position
         velo_delta = opp.velocity - self.velocity
 
-        time_delta = aim_ahead(pos_delta, velo_delta, self.speed_trace[-1])
-        if time_delta is None:
-            print(f"{self.name} cannot intercept {opp.name}")
+        td = aim_ahead(pos_delta, velo_delta, self.speed_trace[-1])
+        if td is None:
+            print(f"{self.name} cannot intercept {opp.name}", file=sys.stderr)
             return
+
+        time_delta = int(round(td))
+        print(f"{td}, {time_delta}, {to_coords(pos_delta)}, {to_coords(velo_delta)}", file=sys.stderr)
 
         aim_point = opp.position + opp.velocity * time_delta
         self.target = aim_point
