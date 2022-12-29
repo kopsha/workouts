@@ -135,20 +135,25 @@ class PodRacer:
         self.name = name
         self.has_boost = True
         self.speed_trace = deque(maxlen=4)
-        self.cpid = int()
+        self.cpid = int(1)
         self.next_cp = self.cp = self.target = complex()
         self.last_position = self.position = self.velocity = complex()
         self.angle = float()
         self.thrust = int()
         self.shield_count = int()
+        self.remaining_checkpoints = 3 * len(checkpoints)
+
         self.update(pod, checkpoints)
 
     def update(self, pod: Pod, checkpoints: list[Coord]) -> None:
-        self.last_position = self.position
         if self.shield_count:
             self.shield_count -= 1
 
-        self.cpid = pod.cpid
+        if self.cpid != pod.cpid:
+            self.remaining_checkpoints -= 1
+            self.cpid = pod.cpid
+
+        self.last_position = self.position
         self.position = complex(pod.x, pod.y)
         self.angle = radians(pod.angle)
         self.velocity = complex(pod.vx, pod.vy)
@@ -165,15 +170,21 @@ class PodRacer:
     def target_distance(self) -> float:
         return abs(self.cp - self.position)
 
+    @property
+    def remaining_work(self) -> int:
+        return self.remaining_checkpoints * 100_000 + int(self.target_distance)
+
     def __str__(self):
         xc, yc = to_coords(self.target)
         return f"{xc} {yc} {self.thrust}"
 
     def __repr__(self):
         return (
+            f"{self.name:>4} < "
             f"TD:{int(round(self.target_distance)):4}m, "
             f"V:{int(round(abs(self.velocity))):4} m/s, O:{self.thrust:3} "
-            f"<):{humangle(self.angle):>4} boost: {int(self.has_boost)}"
+            f"<):{humangle(self.angle):>4} boost: {int(self.has_boost)} "
+            f"{self.remaining_work:10,}"
         )
 
     def boost(self) -> None:
@@ -292,6 +303,21 @@ class PodRacer:
 
         return step, position, angle, velocity
 
+    def intercept(self, opp: PodRacer):
+        self.target = (2 * opp.target + opp.position) / 3
+        self.thrust = 100
+
+        next_dist = int(round(abs(self.next_position - opp.next_position)))
+        if next_dist <= 808:
+            self.shield()
+
+    def boost_on_long_distance(self):
+        if self.has_boost:
+            t_angle = phase(self.target - self.position)
+            dev = remainder(t_angle - self.angle, 2 * pi)
+            if self.target_distance > 5000 and abs(dev) <= pi / 36:
+                self.boost()
+
 
 ## --- PodRacer: end ---
 
@@ -303,9 +329,10 @@ def touch(position: complex, target: complex) -> complex:
     return target - touch_delta
 
 
-def can_drift(pod: PodRacer) -> tuple[complex, Union[int, str]]:
+def drift_towards_checkpoint(pod: PodRacer) -> tuple[complex, Union[int, str]]:
     far_enough = abs(pod.velocity) * 8
     if pod.target_distance > far_enough or pod.shield_count:
+        # too far to evaluate drift
         return pod.cp, pod.thrust
 
     best_angle = phase(pod.next_cp - pod.cp)
@@ -326,14 +353,8 @@ def can_drift(pod: PodRacer) -> tuple[complex, Union[int, str]]:
             dev = degrees(abs(deviation))
             choose[acc] = ss, dist * dev, True, dev
 
-    # for k, v in choose.items():
-    #     print(k,":", v, file=sys.stderr)
     if choose:
         best = min(choose, key=lambda k: choose[k])
-        # print(
-        #     f"-=> {best}: {choose[best]}", file=sys.stderr
-        # )
-
         return pod.next_cp if choose[best][2] else pod.cp, best
 
     return pod.cp, pod.thrust
@@ -341,7 +362,7 @@ def can_drift(pod: PodRacer) -> tuple[complex, Union[int, str]]:
 
 def drift(my_pods: list[PodRacer]):
     for pod in my_pods:
-        target, thrust = can_drift(pod)
+        target, thrust = drift_towards_checkpoint(pod)
         pod.target = target
         pod.thrust = thrust
 
@@ -375,12 +396,29 @@ def main():
         him1.update(pods["him_first"], layout["checkpoints"])
         him2.update(pods["him_second"], layout["checkpoints"])
 
-        drift(my_pods)
-        for pod in my_pods:
-            pod.defend_on_collision(his_pods)
+        ranked_pods = sorted(my_pods + his_pods, key=lambda pod: pod.remaining_work)
+        # for pod in ranked_pods:
+        #     print(repr(pod), file=sys.stderr)
 
-        print(repr(me1), file=sys.stderr)
-        print(repr(me2), file=sys.stderr)
+        drift(my_pods)
+
+        mine = list()
+        his = list()
+        for i, pod in enumerate(ranked_pods):
+            if pod.name.startswith("him"):
+                his.append(pod)
+            else:
+                mine.append(pod)
+
+        print(f"goat: {repr(his[0])}", file=sys.stderr)
+        print(f"wolf: {repr(mine[1])}", file=sys.stderr)
+        mine[1].intercept(his[0])
+
+        me1.boost_on_long_distance()
+        me2.boost_on_long_distance()
+
+        me1.defend_on_collision(his_pods)
+        me2.defend_on_collision(his_pods)
 
         print(me1)
         print(me2)
