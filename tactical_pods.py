@@ -2,7 +2,7 @@ from __future__ import annotations
 from typing import Union, Iterable
 import sys
 
-from math import degrees, radians, remainder
+from math import degrees, radians, remainder, sqrt
 from cmath import rect, polar, phase, pi
 from collections import namedtuple, deque
 import numpy as np
@@ -79,6 +79,29 @@ def cubic_bezier(a: Coord, b: Coord, c: Coord, d: Coord) -> list[Coord]:
         for t in np.linspace(0, 1, BEZIER_DETAIL)
     ]
     return curve
+
+
+def dot(a: complex, b: complex) -> float:
+    return a.real * b.real + a.imag * b.imag
+
+
+def aim_ahead(pos_delta: complex, velo_delta: complex, speed: float) -> float:
+    """
+    Computes time delta when the pod will hit target, or None if impossible
+    """
+    # Quadratic equation: a*t^2 + b*t + c = 0
+    a = dot(velo_delta, velo_delta)
+    b = dot(velo_delta, speed * speed) * 2
+    c = dot(pos_delta, pos_delta)
+    disc = b * b - 4 * a * c
+
+    if disc < 0:
+        return None
+
+    x1 = 2 * c / (sqrt(disc) - b)
+    x2 = 2 * c / (-sqrt(disc) - b)
+
+    return min(x1, x2)
 
 
 def read_race_layout() -> dict:
@@ -303,20 +326,29 @@ class PodRacer:
 
         return step, position, angle, velocity
 
-    def intercept(self, opp: PodRacer):
-        self.target = (2 * opp.target + opp.position) / 3
-        self.thrust = 100
-
-        next_dist = int(round(abs(self.next_position - opp.next_position)))
-        if next_dist <= 808:
-            self.shield()
-
     def boost_on_long_distance(self):
         if self.has_boost:
             t_angle = phase(self.target - self.position)
             dev = remainder(t_angle - self.angle, 2 * pi)
             if self.target_distance > 5000 and abs(dev) <= pi / 36:
                 self.boost()
+
+    def intercept(self, opp: PodRacer):
+        pos_delta = opp.position - self.position
+        velo_delta = opp.velocity - self.velocity
+
+        time_delta = aim_ahead(pos_delta, velo_delta, self.speed_trace[-1])
+        if time_delta is None:
+            print(f"{self.name} cannot intercept {opp.name}")
+            return
+
+        aim_point = opp.position + opp.velocity * time_delta
+        self.target = aim_point
+        self.thrust = 100
+
+        next_dist = int(round(abs(self.next_position - opp.next_position)))
+        if next_dist <= 808:
+            self.shield()
 
 
 ## --- PodRacer: end ---
