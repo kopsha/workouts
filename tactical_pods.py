@@ -333,6 +333,16 @@ class PodRacer:
             if self.target_distance > 5000 and abs(dev) <= pi / 36:
                 self.boost()
 
+    def oversteer_towards_target(self) -> None:
+        t_angle = phase(self.target - self.position)
+        v_angle = phase(self.velocity)
+        deviation = remainder(t_angle - v_angle, 2 * pi)
+        desired = self.target - self.position
+
+        correction = clamp(deviation / 4, -pi / 18, pi / 18)
+        new_target = desired * rect(1, correction) + self.position
+        self.target = new_target
+
     def intercept(self, opp: PodRacer):
         pos_delta = opp.position - self.position
         velo_delta = opp.velocity - self.velocity
@@ -377,17 +387,17 @@ def drift_towards_checkpoint(pod: PodRacer) -> tuple[complex, Union[int, str]]:
             dist = abs(pod.cp - pos)
             deviation = remainder(best_angle - ang, 2 * pi)
             dev = degrees(abs(deviation))
-            choose[acc] = ss, dist * dev, False, dev
+            choose[acc] = ss, dev * dist, dist, False
 
         if dss is not None and dss < 5:
             dist = abs(pod.cp - dpos)
             deviation = remainder(best_angle - dang, 2 * pi)
             dev = degrees(abs(deviation))
-            choose[acc] = ss, dist * dev, True, dev
+            choose[acc] = ss, dev * dist, dist, True
 
     if choose:
         best = min(choose, key=lambda k: choose[k])
-        return pod.next_cp if choose[best][2] else pod.cp, best
+        return pod.next_cp if choose[best][3] else pod.cp, best
 
     return pod.cp, pod.thrust
 
@@ -429,9 +439,6 @@ def main():
         him2.update(pods["him_second"], layout["checkpoints"])
 
         ranked_pods = sorted(my_pods + his_pods, key=lambda pod: pod.remaining_work)
-        # for pod in ranked_pods:
-        #     print(repr(pod), file=sys.stderr)
-
         drift(my_pods)
 
         mine = list()
@@ -445,6 +452,9 @@ def main():
         print(f"goat: {repr(his[0])}", file=sys.stderr)
         print(f"wolf: {repr(mine[1])}", file=sys.stderr)
         mine[1].intercept(his[0])
+
+        me1.oversteer_towards_target()
+        me2.oversteer_towards_target()
 
         me1.boost_on_long_distance()
         me2.boost_on_long_distance()
