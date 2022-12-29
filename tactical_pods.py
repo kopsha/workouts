@@ -173,7 +173,7 @@ class PodRacer:
         return (
             f"TD:{int(round(self.target_distance)):4}m, "
             f"V:{int(round(abs(self.velocity))):4} m/s, O:{self.thrust:3} "
-            f"<):{humangle(self.angle):4}° boost: {int(self.has_boost)}"
+            f"<):{humangle(self.angle):>4} boost: {int(self.has_boost)}"
         )
 
     def boost(self) -> None:
@@ -188,9 +188,22 @@ class PodRacer:
     def defend_on_collision(self, opponents: Iterable[PodRacer]):
         for opp in opponents:
             next_dist = int(round(abs(self.next_position - opp.next_position)))
-            speed_diff = abs(self.velocity - opp.velocity)
+            speed_diff = int(round(abs(self.velocity - opp.velocity)))
+            angle_diff = abs(
+                remainder(phase(self.velocity) - phase(opp.velocity), 2 * pi)
+            )
 
-            if next_dist <= 888 and speed_diff > 233:
+            if next_dist <= 844 and speed_diff >= 333 and angle_diff > pi / 5:
+                print(
+                    self.name,
+                    "vs",
+                    opp.name,
+                    ":",
+                    next_dist,
+                    speed_diff,
+                    humangle(angle_diff),
+                    file=sys.stderr,
+                )
                 self.shield()
                 return
 
@@ -363,7 +376,8 @@ def main():
         him2.update(pods["him_second"], layout["checkpoints"])
 
         drift(my_pods)
-        map(lambda pod: pod.defend_on_collision(his_pods), my_pods)
+        for pod in my_pods:
+            pod.defend_on_collision(his_pods)
 
         print(repr(me1), file=sys.stderr)
         print(repr(me2), file=sys.stderr)
