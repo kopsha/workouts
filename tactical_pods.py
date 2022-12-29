@@ -9,7 +9,7 @@ import numpy as np
 
 
 CP_RADIUS = 600
-CP_GRAVITY = CP_RADIUS // 10
+CP_GRAVITY = CP_RADIUS // 5
 HOLD_DURATION = 7
 
 
@@ -146,7 +146,7 @@ class PodRacer:
     def update(self, pod: Pod, checkpoints: list[Coord]) -> None:
         self.last_position = self.position
         if self.shield_count:
-            pod.shield_count -= 1
+            self.shield_count -= 1
 
         self.cpid = pod.cpid
         self.position = complex(pod.x, pod.y)
@@ -292,29 +292,37 @@ def touch(position: complex, target: complex) -> complex:
 
 def can_drift(pod: PodRacer) -> tuple[complex, Union[int, str]]:
     far_enough = abs(pod.velocity) * 8
-    if pod.target_distance > far_enough:
-        return touch(pod.position, pod.target), pod.thrust
-
-    if pod.shield_count:
-        return touch(pod.position, pod.target), pod.thrust
+    if pod.target_distance > far_enough or pod.shield_count:
+        return pod.cp, pod.thrust
 
     # priority 1: reach cp
-    steps, _, _, _ = pod.projection(pod.cp, 100)
-    if steps == 5:
-        print(f"Reaching cp in {steps} steps.", file=sys.stderr)
-        return touch(pod.position, pod.target), pod.thrust
+    best_angle = phase(pod.next_cp - pod.cp)
+    choose = dict()
+    for acc in range(0, 100, 20):
+        steps, pos, ang, vel = pod.projection(pod.cp, acc)
+        if steps < 5:
+            dist = abs(pod.cp - pos)
+            dev = abs(best_angle - ang)
+            choose[acc] = steps, dist, dev
 
     # priority 2: drift towards next cp
-    drift_steps, _, _, _ = pod.drift_projection(pod.cp, 50, pod.next_cp)
-    if drift_steps is not None and drift_steps <= steps:
-        print(f"Drifting for {drift_steps} steps", file=sys.stderr)
-        pod.shield_count = 3
-        return touch(pod.cp, pod.next_cp), 50
+    for acc in range(5, 100, 20):
+        steps, pos, ang, vel = pod.drift_projection(pod.cp, acc, pod.next_cp)
+        if steps is not None and steps < 5:
+            dist = abs(pod.cp - pos)
+            dev = abs(best_angle - ang)
+            choose[acc] = steps, dist, dev
 
-    print(
-        f"Reaching cp in {steps} steps. Drifting {drift_steps} steps", file=sys.stderr
-    )
-    return touch(pod.position, pod.target), pod.thrust
+    print(choose, file=sys.stderr)
+    if choose:
+        best = max(
+            choose, key=lambda k: (choose[k][0], choose[k][1] * (choose[k][2] ** 2))
+        )
+        print(f"{best}: {choose[best]}", file=sys.stderr)
+
+        return pod.next_cp if best % 5 == 0 else pod.cp, best
+
+    return pod.cp, pod.thrust
 
 
 def drift(my_pods: list[PodRacer]):
