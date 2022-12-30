@@ -101,9 +101,6 @@ def aim_ahead(pos_delta: complex, velo_delta: complex, speed: float) -> float | 
     x1 = 2 * c / (sqrt(disc) - b)
     x2 = 2 * c / (-sqrt(disc) - b)
 
-    print(a, b, c, file=sys.stderr)
-    print(x1, x2, file=sys.stderr)
-
     return x1
 
 
@@ -366,28 +363,42 @@ class PodRacer:
         new_target = desired * rect(1, correction) + self.position
         self.target = new_target
 
-    def intercept(self, opp: PodRacer):
-        pos_delta = opp.position - self.position
+    def intercept(self, goat: PodRacer):
+        pos_delta = goat.position - self.position
         _, _, my_velocity = self.next_state
-        _, _, opp_velocity = opp.next_state
-        velo_delta = opp_velocity - my_velocity
+        _, _, goat_velocity = goat.next_state
+        velo_delta = goat_velocity - my_velocity
 
         td = aim_ahead(pos_delta, velo_delta, abs(my_velocity))
-        if td is None:
-            print(f"{self.name} cannot intercept {opp.name}", file=sys.stderr)
+        if td is None or td > 8 or td <= 0:
+            print(
+                f"{self.name} cannot intercept {goat.name} [{td or -1:.0f}]",
+                file=sys.stderr,
+            )
             return
 
         time_delta = int(round(td))
-        print(
-            f"{td}, {time_delta}, {to_coords(pos_delta)}, {to_coords(velo_delta)}",
-            file=sys.stderr,
+        moves, aim_point, _, aim_velo = goat.projection(
+            goat.cp, goat.thrust, max_steps=time_delta
         )
 
-        aim_point = opp.position + opp.velocity * time_delta
-        self.target = aim_point
-        self.thrust = 100
+        if moves < time_delta:
+            print(
+                "Goat will reach cp before collision, heading towards next target",
+                goat.next_cp,
+                file=sys.stderr,
+            )
+            self.target = goat.next_cp
+            self.thrust = 100
+        else:
+            print(
+                f"Projected collision in {moves} steps @ {to_coords(aim_point)}",
+                file=sys.stderr,
+            )
+            self.target = aim_point
+            self.thrust = 100
 
-        next_dist = int(round(abs(self.next_position - opp.next_position)))
+        next_dist = int(round(abs(self.next_position - goat.next_position)))
         if next_dist <= 808:
             self.shield()
 
@@ -471,6 +482,8 @@ def main():
         him2.update(pods["him_second"], layout["checkpoints"])
 
         ranked_pods = sorted(my_pods + his_pods, key=lambda pod: pod.remaining_work)
+        # for i, p in enumerate(ranked_pods):
+        #     print(i + 1, repr(p), file=sys.stderr)
         drift(my_pods)
 
         mine = list()
@@ -481,8 +494,8 @@ def main():
             else:
                 mine.append(pod)
 
-        print(f"goat: {repr(his[0])}", file=sys.stderr)
-        print(f"wolf: {repr(mine[1])}", file=sys.stderr)
+        # print(f"goat: {repr(his[0])}", file=sys.stderr)
+        # print(f"wolf: {repr(mine[1])}", file=sys.stderr)
 
         mine[0].oversteer_towards_target()
         mine[1].intercept(his[0])
