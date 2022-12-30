@@ -90,7 +90,7 @@ def aim_ahead(pos_delta: complex, velo_delta: complex, speed: float) -> float | 
     Computes time delta when the pod will hit target, or None if impossible
     """
     # Quadratic equation: a*t^2 + b*t + c = 0
-    a = dot(velo_delta, velo_delta) - speed ** 2
+    a = dot(velo_delta, velo_delta) - speed**2
     b = dot(velo_delta, pos_delta) * 2
     c = dot(pos_delta, pos_delta)
     disc = b * b - 4 * a * c
@@ -376,7 +376,10 @@ class PodRacer:
             return
 
         time_delta = int(round(td))
-        print(f"{td}, {time_delta}, {to_coords(pos_delta)}, {to_coords(velo_delta)}", file=sys.stderr)
+        print(
+            f"{td}, {time_delta}, {to_coords(pos_delta)}, {to_coords(velo_delta)}",
+            file=sys.stderr,
+        )
 
         aim_point = opp.position + opp.velocity * time_delta
         self.target = aim_point
