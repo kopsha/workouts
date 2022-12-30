@@ -258,6 +258,24 @@ class PodRacer:
 
         return new_position
 
+    @property
+    def next_state(self) -> tuple[complex, float, complex]:
+        """projected next position considering current target"""
+        # compute pod rotation (max. 18 degrees)
+        position = self.position
+        angle = self.angle
+        t_angle = phase(self.target - position)
+        deviation = remainder(t_angle - angle, 2 * pi)
+        angle += clamp(deviation, -pi / 10, pi / 10)
+
+        # compute movement vectors
+        use_thrust = thrust_value(self.thrust)
+        movement = self.velocity + rect(use_thrust, angle)
+        position += movement
+        velocity = 0.85 * movement
+
+        return position, angle, velocity
+
     def projection(
         self,
         use_target: complex,
@@ -348,9 +366,11 @@ class PodRacer:
 
     def intercept(self, opp: PodRacer):
         pos_delta = opp.position - self.position
-        velo_delta = opp.velocity - self.velocity
+        _, _, my_velocity = self.next_state
+        _, _, opp_velocity = opp.next_state
+        velo_delta = opp_velocity - my_velocity
 
-        td = aim_ahead(pos_delta, velo_delta, self.speed_trace[-1])
+        td = aim_ahead(pos_delta, velo_delta, abs(my_velocity))
         if td is None:
             print(f"{self.name} cannot intercept {opp.name}", file=sys.stderr)
             return
