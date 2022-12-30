@@ -214,7 +214,7 @@ class PodRacer:
         )
 
     def boost(self) -> None:
-        if self.has_boost:
+        if self.has_boost and self.shield_count == 0:
             self.thrust = "BOOST"
             self.has_boost = False
 
@@ -347,12 +347,14 @@ class PodRacer:
 
         return step, position, angle, velocity
 
-    def boost_on_long_distance(self):
+    def boost_on_long_distance(self) -> bool:
         if self.has_boost:
             t_angle = phase(self.target - self.position)
             dev = remainder(t_angle - self.angle, 2 * pi)
             if self.target_distance > 5000 and abs(dev) <= pi / 36:
                 self.boost()
+                return self.thrust == "BOOST"
+        return False
 
     def oversteer_towards_target(self) -> None:
         t_angle = phase(self.target - self.position)
@@ -459,6 +461,7 @@ def main():
     print(me1)
     print(me2)
 
+    hold_boost = 0
     while True:
         pods = read_pods()
 
@@ -480,16 +483,20 @@ def main():
 
         print(f"goat: {repr(his[0])}", file=sys.stderr)
         print(f"wolf: {repr(mine[1])}", file=sys.stderr)
+
+        mine[0].oversteer_towards_target()
         mine[1].intercept(his[0])
-
-        me1.oversteer_towards_target()
-        me2.oversteer_towards_target()
-
-        me1.boost_on_long_distance()
-        me2.boost_on_long_distance()
 
         me1.defend_on_collision(his_pods)
         me2.defend_on_collision(his_pods)
+
+        if hold_boost:
+            hold_boost -= 1
+        else:
+            if me1.boost_on_long_distance():
+                hold_boost = 7
+            elif me2.boost_on_long_distance():
+                hold_boost = 7
 
         print(me1)
         print(me2)
