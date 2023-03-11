@@ -33,6 +33,7 @@ def fake_channels(count=2500):
         channels.append(fake_channel)
     return channels
 
+
 def blow_up_channels(use_config_file, fake_config_file):
     with open(use_config_file, "rt") as file:
         config = yaml.safe_load(file)
@@ -41,7 +42,7 @@ def blow_up_channels(use_config_file, fake_config_file):
 
     with open(fake_config_file, "wt") as outfile:
         yaml.safe_dump(config, outfile)
-    
+
     print("Done, faked", len(config["channels"]), "channels.")
 
 
@@ -66,8 +67,8 @@ def compress(text_file, zipped_file):
 
 
 def is_gz_file(filepath):
-    with open(filepath, 'rb') as test_file:
-        return test_file.read(2) == b'\x1f\x8b'
+    with open(filepath, "rb") as test_file:
+        return test_file.read(2) == b"\x1f\x8b"
 
 
 def smart_load(filename):
@@ -76,7 +77,7 @@ def smart_load(filename):
 
         with open(filename, "rb") as zipfile:
             content = zipfile.read()
-            
+
         ref_ns = perf_counter_ns()
         buffer = gzip.decompress(content)
         end_ns = perf_counter_ns()
@@ -84,7 +85,7 @@ def smart_load(filename):
 
         print(f"Decompression took {(end_ns - ref_ns) / 1_000_000:.3f} ms")
 
-        with open(filename+".check", "wt") as outfile:
+        with open(filename + ".check", "wt") as outfile:
             outfile.write(text)
 
     else:
@@ -96,7 +97,7 @@ def smart_load(filename):
     config = yaml.safe_load(text)
     print("loaded config has", len(config["channels"]), "channels")
 
-    
+
 if __name__ == "__main__":
     blow_up_channels("dummy-config.yaml", "faked-config.yaml")
     compress("faked-config.yaml", "faked-config.yaml.gz")
