@@ -1,0 +1,237 @@
+version: 1
+
+channels:
+  - id: 48bb273b-be91-4ac3-b6a4-5f589e278921
+    name: channel0
+    oboChannelId: oboId1
+    drmContentId: drmContentId1
+    tenantIds:
+      - nl
+    sourceId: sourceId0
+    packagerId: pack0
+    cleanupThreshold: PT7H
+    intendedTrackTypeId: ebe5e425-383c-444f-b3c4-c122dd9002d7
+    swmLength: PT2H
+    interimManifestDuration: PT15M
+    interimManifestTime:
+      - 0
+      - 15
+      - 30
+      - 45
+    manifestUrls:
+      - http://12.13.142.151/please-fake-dis/disk1/bea-0220/go-dash-clear/honeypot-0220.mpd
+      - http://12.13.142.151/please-fake-dat/disk2/bea-0220/go-dash-clear/honeypot-0221.mpd
+    updatePeriod: PT7S
+  - id: 2396bdfd-7a7a-40d3-8c24-5a626f609816
+    name: channel1
+    oboChannelId: oboId1
+    drmContentId: drmContentId1
+    tenantIds:
+      - nl
+    sourceId: sourceId0
+    packagerId: pack1
+    cleanupThreshold: PT7H
+    intendedTrackTypeId: 61eebdfd-8e4e-4f58-aa50-3b0da50eb1a1
+    swmLength: PT2H
+    interimManifestDuration: PT15M
+    interimManifestTime:
+      - 0
+      - 15
+      - 30
+      - 45
+    manifestUrls:
+      - http://12.13.142.151/please-fake-dis/disk1/bea-0220/go-dash-clear/honeypot-0220.mpd
+      - http://12.13.142.151/please-fake-dat/disk2/bea-0220/go-dash-clear/honeypot-0221.mpd
+  - id: 6426514e-3d12-4d0a-8e42-d9592bffa63f
+    name: channel2
+    oboChannelId: oboId2
+    drmContentId: drmContentId2
+    tenantIds:
+      - nl
+    sourceId: sourceId0
+    packagerId: pack2
+    cleanupThreshold: PT7H
+    swmLength: PT2H
+    interimManifestDuration: PT15M
+    interimManifestTime:
+      - 0
+      - 15
+      - 30
+      - 45
+    manifestUrls:
+      - http://12.13.142.151/please-fake-dis/disk1/bea-0220/go-dash-clear/honeypot-0220.mpd
+      - http://12.13.142.151/please-fake-dat/disk2/bea-0220/go-dash-clear/honeypot-0221.mpd
+  - id: honeypot-0220-5
+    name: honeypot-0220-5
+    oboChannelId: honeypot-0220-5
+    drmContentId: drmContentId3
+    tenantIds:
+      - nl
+    sourceId: 28e9d538-7473-11ec-90d6-0242ac120003
+    packagerId: 9a694227-9f25-4e71-8da1-40a103071201
+    cleanupThreshold: P7D
+    #intendedTrackTypeId: ebe5e425-383c-444f-b3c4-c122dd9002d7
+    swmLength: PT2H
+    interimManifestDuration: PT15M
+    interimManifestTime:
+      - 0
+      - 15
+      - 30
+      - 45
+    manifestUrls:
+      - http://192.168.25.21/live/dqnas01/genesis_reference/dash_time_free/genesis_reference.mpd
+  - id: halo-gcp-proxy
+    name: halo-gcp-proxy
+    oboChannelId: halo-gcp-proxy
+    drmContentId: drmContentId4
+    tenantIds:
+      - nl
+    sourceId: 10da4702-34fd-4e43-9798-be898c61b0b8
+    packagerId: 3f6ecabf-3121-4d67-a807-78061012f68a
+    cleanupThreshold: P7D
+    #intendedTrackTypeId: ebe5e425-383c-444f-b3c4-c122dd9002d7
+    swmLength: PT2H
+    interimManifestDuration: PT15M
+    interimManifestTime:
+      - 0
+      - 15
+      - 30
+      - 45
+    manifestUrls:
+      - http://35.204.160.43/dash/EntertainmentE/manifest.mpd
+
+
+devices:
+  - name: dash
+    manifestType: DASH
+    filters:
+      - mimeType: video/mp4
+        predicate: bandwidth > 1
+    drmProfileId: c26dfb9e-8ff5-4a67-8e24-b2e583cf1565
+  - name: hls
+    manifestType: HLS
+    filters:
+      - mimeType: video/mp4
+        predicate: bandwidth > 1
+    drmProfileId: c26dfb9e-8ff5-4a67-8e24-b2e583cf1565
+    hlsVersion: 7
+  - name: dash-noEncrypt
+    manifestType: DASH
+    filters:
+      - mimeType: video/mp4
+        predicate: bandwidth > 1
+  - name: dash-decrypt
+    manifestType: DASH
+    filters:
+      - mimeType: video/mp4
+        predicate: bandwidth > 1
+    drmProfileId: c26dfb9e-8ff5-4a67-8e24-b2e583cf1565
+
+sources:
+  - id: sourceId0
+    storageId: st0
+    channelId: ch0
+  - id: sourceId1
+    storageId: st1
+    channelId: ch1
+  - id: 28e9d538-7473-11ec-90d6-0242ac120003
+    storageId: ffc99874-fb8d-4e18-a5c0-2c9d8dd0c80d
+    channelId: honeypot-0220
+  - id: 10da4702-34fd-4e43-9798-be898c61b0b8
+    storageId: docker-minio-storage
+    channelId: halo-gcp-proxy
+
+storages:
+  - id: st0
+    baseUrl: http://s3mock:9090
+    bucketName: manifests
+    priority: 1
+  - id: st1
+    priority: 2
+    baseUrl: http://s3mock:9090
+    bucketName: manifests
+  - id: ffc99874-fb8d-4e18-a5c0-2c9d8dd0c80d
+    baseUrl: https://storage.googleapis.com
+    bucketName: hello-genesis
+    priority: 1
+  - id: docker-minio-storage
+    priority: 1
+    baseUrl: http://localhost:9100
+    bucketName: chunks-1
+
+drmProfiles:
+  - id: c26dfb9e-8ff5-4a67-8e24-b2e583cf1565
+    name: Irdeto CPIX23
+    type: CPIX23
+    encryptionTypes:
+      - name: Playready
+        systemId: 9a04f079-9840-4286-ab92-e65be0885f95
+        encryptionMethod: AES-CTR
+        manifestTypes:
+          - DASH
+      - name: Widevine
+        systemId: edef8ba9-79d6-4ace-a3c8-27dcd51d21ed
+        encryptionMethod: AES-CTR
+        manifestTypes:
+          - DASH
+      - name: Fairplay
+        systemId: 94CE86FB-07FF-4F43-ADB8-93D2FA968CA2
+        encryptionMethod: AES-CBC
+        manifestTypes:
+          - HLS
+    keyServer:
+      nl:
+        url: https://lgi-poc.nl.com/tkm/v2/lgi-poc/contents/{contentId}/copyProtectionData
+        username: user123
+        password: 123456
+    keyCachePeriod:
+      nl: PT7H
+    drm911:
+      nl: false
+
+intendedTrackTypes:
+  - id: ebe5e425-383c-444f-b3c4-c122dd9002d7
+    name: Premium ITT
+    mimeTypeToGroups:
+      video/mp4:
+        - name: UHD-Video
+          predicate: bandwidth >= 1000
+        - name: SD-Video
+          predicate: bandwidth > 100 and bandwidth < 1000
+          default: true
+      audio/mp4:
+        - name: audio
+  - id: 61eebdfd-8e4e-4f58-aa50-3b0da50eb1a1
+    name: Gold ITT
+    mimeTypeToGroups:
+      video/mp4:
+        - name: UHD-Video
+          predicate: bandwidth >= 550
+        - name: SD-Video
+          predicate: bandwidth > 50 and bandwidth < 550
+          default: true
+      audio/mp4:
+        - name: audio
+
+testGroups:
+  - name: tGroup0
+    packagers:
+      - pack0
+      - pack1
+  - name: tGroup1
+    packagers:
+      - pack0
+
+packagers:
+  - id: pack0
+    vendor: Amazon Prime Honeypot
+    versionId: 4.10.0
+    priority: 10
+  - id: pack1
+    vendor: Amazon Prime Honeypot
+    versionId: 4.10.1
+    priority: 20
+  - id: 3f6ecabf-3121-4d67-a807-78061012f68a
+    vendor: Halo
+    versionId: 1.0.0
+    priority: 10

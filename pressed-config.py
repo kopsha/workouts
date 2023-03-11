@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import yaml
-import mimetypes
 import gzip
+import shutil
 
 from faker import Faker
 from time import perf_counter_ns
@@ -33,22 +33,20 @@ def fake_channels(count=2500):
         channels.append(fake_channel)
     return channels
 
-def blow_up_channels(filename):
-    with open(filename, "rt") as file:
+def blow_up_channels(use_config_file, fake_config_file):
+    with open(use_config_file, "rt") as file:
         config = yaml.safe_load(file)
 
     config["channels"] = fake_channels(2500)
 
-    with open(filename, "wt") as outfile:
+    with open(fake_config_file, "wt") as outfile:
         yaml.safe_dump(config, outfile)
     
     print("Done, faked", len(config["channels"]), "channels.")
 
 
-def compress(filename):
-    mimetypes.init()
-
-    with open(filename, "rt") as file:
+def compress(text_file, zipped_file):
+    with open(text_file, "rt") as file:
         content = file.read()
 
     clear_buffer = content.encode("utf-8")
@@ -57,7 +55,7 @@ def compress(filename):
     pressed_buffer = gzip.compress(clear_buffer)
     end_ns = perf_counter_ns()
 
-    with open(filename+".gz", "wb") as zipped:
+    with open(zipped_file, "wb") as zipped:
         zipped.write(pressed_buffer)
 
     print(f"Read  {len(clear_buffer):12,} bytes")
@@ -67,11 +65,14 @@ def compress(filename):
     print(f"Compression took {(end_ns - ref_ns) / 1_000_000:.3f} ms")
 
 
-def smart_load(filename):
-    _, menc = mimetypes.guess_type(filename)
+def is_gz_file(filepath):
+    with open(filepath, 'rb') as test_file:
+        return test_file.read(2) == b'\x1f\x8b'
 
-    if menc == "gzip":
-        print("it's zipped")
+
+def smart_load(filename):
+    if is_gz_file(filename):
+        print("..: gzipped")
 
         with open(filename, "rb") as zipfile:
             content = zipfile.read()
@@ -87,6 +88,8 @@ def smart_load(filename):
             outfile.write(text)
 
     else:
+        print("..: plain text")
+
         with open(filename, "rt") as textfile:
             text = textfile.read()
 
@@ -95,6 +98,13 @@ def smart_load(filename):
 
     
 if __name__ == "__main__":
-    blow_up_channels("dummy-configuration.yaml")
-    compress("dummy-configuration.yaml")
-    smart_load("dummy-configuration.yaml.gz")
+    blow_up_channels("dummy-config.yaml", "faked-config.yaml")
+    compress("faked-config.yaml", "faked-config.yaml.gz")
+
+    print("-- testing plain text load")
+    shutil.copy("faked-config.yaml", "test-config.yaml")
+    smart_load("test-config.yaml")
+
+    print("-- testing compressed load")
+    shutil.copy("faked-config.yaml.gz", "test-config.yaml")
+    smart_load("test-config.yaml")
