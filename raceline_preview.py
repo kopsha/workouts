@@ -53,17 +53,17 @@ class RacelinePainter(PicassoEngine):
     def on_paint(self):
         self.canvas = pygame.Surface(self.canvas_size)
 
-        self.mark_points()
-        # self.mark_segments()
-        if len(self.curve) > 1:
-            pygame.draw.lines(
-                self.canvas, GRAY, closed=False, points=self.curve, width=13
-            )
-            pygame.draw.line(
-                self.canvas, GRAY, self.last_position, self.position, width=10
-            )
-            pygame.draw.circle(self.canvas, GRAY, self.last_position, radius=72)
-            pygame.draw.circle(self.canvas, YELLOW, self.position, radius=100)
+        # self.mark_points()
+        self.mark_segments()
+        # if len(self.curve) > 1:
+        #     pygame.draw.lines(
+        #         self.canvas, GRAY, closed=False, points=self.curve, width=13
+        #     )
+        #     pygame.draw.line(
+        #         self.canvas, GRAY, self.last_position, self.position, width=10
+        #     )
+        #     pygame.draw.circle(self.canvas, GRAY, self.last_position, radius=72)
+        #     pygame.draw.circle(self.canvas, YELLOW, self.position, radius=100)
 
         if len(self.live_curve) > 1:
             pygame.draw.lines(

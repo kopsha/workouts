@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 from __future__ import annotations
 from typing import Union, Iterable
 import sys
@@ -48,37 +50,6 @@ def lerp(a: float, b: float, t: float) -> float:
 
 def inv_lerp(a: float, b: float, v: float) -> float:
     return (v - a) / (b - a)
-
-
-def quadratic(a: float, b: float, c: float, t: float) -> float:
-    rc = (1 - t) ** 2 * a + 2 * (1 - t) * t * b + t**2 * c
-    return rc
-
-
-def quadratic_bezier(a: Coord, b: Coord, c: Coord) -> list[Coord]:
-    curve = [
-        Coord(quadratic(a.x, b.x, c.x, t), quadratic(a.y, b.y, c.y, t))
-        for t in np.linspace(0, 1, BEZIER_DETAIL)
-    ]
-    return curve
-
-
-def cubic(a: float, b: float, c: float, d: float, t: float) -> float:
-    rc = (
-        (1 - t) ** 3 * a
-        + 3 * (1 - t) ** 2 * t * b
-        + 3 * (1 - t) * t**2 * c
-        + t**3 * d
-    )
-    return rc
-
-
-def cubic_bezier(a: Coord, b: Coord, c: Coord, d: Coord) -> list[Coord]:
-    curve = [
-        Coord(cubic(a.x, b.x, c.x, d.x, t), cubic(a.y, b.y, c.y, d.y, t))
-        for t in np.linspace(0, 1, BEZIER_DETAIL)
-    ]
-    return curve
 
 
 def dot(a: complex, b: complex) -> float:
@@ -166,8 +137,6 @@ class PodRacer:
         self.shield_count = int()
         self.remaining_checkpoints = 3 * len(checkpoints)
 
-        self.update(pod, checkpoints)
-
     def update(self, pod: Pod, checkpoints: list[Coord]) -> None:
         if self.shield_count:
             self.shield_count -= 1
@@ -210,50 +179,9 @@ class PodRacer:
             f"{self.remaining_work:10,}"
         )
 
-    def boost(self) -> None:
-        if self.has_boost and self.shield_count == 0:
-            self.thrust = "BOOST"
-            self.has_boost = False
-
-    def shield(self) -> None:
-        self.shield_count = 3
-        self.thrust = "SHIELD"
-
-    def defend_on_collision(self, opponents: Iterable[PodRacer]):
-        for opp in opponents:
-            next_dist = int(round(abs(self.next_position - opp.next_position)))
-            speed_diff = int(round(abs(self.velocity - opp.velocity)))
-            angle_diff = abs(
-                remainder(phase(self.velocity) - phase(opp.velocity), 2 * pi)
-            )
-
-            if next_dist <= 844 and speed_diff >= 333 and angle_diff > pi / 5:
-                print(
-                    self.name,
-                    "vs",
-                    opp.name,
-                    ":",
-                    next_dist,
-                    speed_diff,
-                    humangle(angle_diff),
-                    file=sys.stderr,
-                )
-                self.shield()
-                return
-
     @property
-    def next_position(self) -> complex:
-        """projected next position considering current target"""
-        thrust = thrust_value(self.thrust)
-        t_angle = phase(self.target - self.position)
-        dev = t_angle - self.angle
-        rot = clamp(dev, -pi / 10, pi / 10)
-
-        acc = rect(thrust, self.angle + rot)
-        movement = self.velocity + acc
-        new_position = self.position + movement
-
-        return new_position
+    def can_boost(self) -> bool:
+        return self.shield_count == 0 and self.has_boost
 
     @property
     def next_state(self) -> tuple[complex, float, complex]:
@@ -273,19 +201,36 @@ class PodRacer:
 
         return position, angle, velocity
 
-    def projection(
-        self,
-        use_target: complex,
-        use_thrust: Union[str, int],
-        max_steps: int = 5,
-    ) -> tuple[int, complex, float, complex]:
+    def boost(self) -> None:
+        if self.can_boost:
+            self.thrust = "BOOST"
+            self.has_boost = False
+
+    def shield(self) -> None:
+        self.shield_count = 3
+        self.thrust = "SHIELD"
+
+    def defend_on_collision(self, opponents: Iterable[PodRacer]):
+        for opp in opponents:
+            next_pos, next_angle, next_velocity = self.next_state
+            next_dist = int(round(abs(self.next_position - opp.next_position)))
+            speed_diff = int(round(abs(self.velocity - opp.velocity)))
+            angle_diff = abs(
+                remainder(phase(self.velocity) - phase(opp.velocity), 2 * pi)
+            )
+
+            if next_dist <= 844 and speed_diff >= 333 and angle_diff > pi / 5:
+                self.shield()
+                return
+
+    def projection(self, use_thrust: Union[str, int], max_steps: int = 6) -> tuple[int, complex, float, complex]:
         """Will stop if target is reached sooner than max_steps"""
 
         thrust = 0 if self.shield_count else thrust_value(use_thrust)
         position = self.position
         velocity = self.velocity
         angle = self.angle
-        distance = int(round(abs(position - use_target)))
+        distance = int(round(self.target_dis))
 
         step = 0
         while distance > (CP_RADIUS - CP_GRAVITY) and step < max_steps:
@@ -482,8 +427,6 @@ def main():
         him2.update(pods["him_second"], layout["checkpoints"])
 
         ranked_pods = sorted(my_pods + his_pods, key=lambda pod: pod.remaining_work)
-        # for i, p in enumerate(ranked_pods):
-        #     print(i + 1, repr(p), file=sys.stderr)
         drift(my_pods)
 
         mine = list()
@@ -493,9 +436,6 @@ def main():
                 his.append(pod)
             else:
                 mine.append(pod)
-
-        # print(f"goat: {repr(his[0])}", file=sys.stderr)
-        # print(f"wolf: {repr(mine[1])}", file=sys.stderr)
 
         mine[0].oversteer_towards_target()
         mine[1].intercept(his[0])

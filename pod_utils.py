@@ -186,6 +186,38 @@ def build_bezier_path(segments) -> list[Coord]:
     return path
 
 
+def find_optimal_angles(checkpoints: list[Coord]) -> list[tuple[Coord]]:
+    segments = list()
+    assert checkpoints
+
+    # find all control points
+    last_mirror_cp = checkpoints[0]
+    for left, right, tow in zip(
+        checkpoints,
+        checkpoints[1:] + checkpoints[:1],
+        checkpoints[2:] + checkpoints[:2],
+    ):
+        position = complex(*left)
+        target = complex(*right)
+        towards = complex(*tow)
+        zcp, mirror_zcp = pick_control_points(position, target, towards)
+        cp, mirror_cp = Coord(*to_coords(zcp)), Coord(*to_coords(mirror_zcp))
+
+        segments.append((left, last_mirror_cp, cp, right))
+        last_mirror_cp = mirror_cp
+
+    # add missing control point for start position
+    first_corrected = (
+        segments[0][0],
+        last_mirror_cp,
+        segments[0][2],
+        segments[0][3],
+    )
+    segments[0] = first_corrected
+
+    return segments
+
+
 def find_nearest_entry(position, facing, cpid, segments, curve):
     """
     Given current position, facing angle and existing bezier curve, finds the
