@@ -37,12 +37,10 @@ OPERATORS = {"|"}
 
 
 def parse_regexp(expression):
-
     stack = list()
     output = ""
 
     for character in expression:
-
         if character not in OPERATORS:
             output += character
         elif character == "(":

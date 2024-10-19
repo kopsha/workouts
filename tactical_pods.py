@@ -1,14 +1,12 @@
 #!/usr/bin/env python3
 
 from __future__ import annotations
-from typing import Union, Iterable
+
 import sys
-
+from cmath import phase, pi, polar, rect
+from collections import deque, namedtuple
 from math import degrees, radians, remainder, sqrt
-from cmath import rect, polar, phase, pi
-from collections import namedtuple, deque
-import numpy as np
-
+from typing import Iterable, Union
 
 CP_RADIUS = 600
 CP_GRAVITY = CP_RADIUS // 5
@@ -223,7 +221,9 @@ class PodRacer:
                 self.shield()
                 return
 
-    def projection(self, use_thrust: Union[str, int], max_steps: int = 6) -> tuple[int, complex, float, complex]:
+    def projection(
+        self, use_thrust: Union[str, int], max_steps: int = 6
+    ) -> tuple[int, complex, float, complex]:
         """Will stop if target is reached sooner than max_steps"""
 
         thrust = 0 if self.shield_count else thrust_value(use_thrust)
@@ -349,6 +349,7 @@ class PodRacer:
 
 
 ## --- PodRacer: end ---
+
 
 ## --- more utils ---
 def touch(position: complex, target: complex) -> complex:

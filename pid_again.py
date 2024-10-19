@@ -1,7 +1,6 @@
-import math
 import cmath
+import math
 import sys
-
 
 TURN_SPEED = 400
 CHECKPOINT_RADIUS = 600
@@ -96,7 +95,6 @@ def break_on_close_target(c_dist, velocity):
 
 
 def steer_towards_opponent(target, position, opponent, last_opponent):
-
     ph1 = cmath.phase(target - position)
     ph2 = cmath.phase(opponent - last_opponent)
     opp_angle = abs(math.remainder(ph1 - ph2, cmath.pi))

@@ -1,10 +1,9 @@
-from collections import namedtuple, Counter
+from collections import Counter, namedtuple
 
 Card = namedtuple("Card", ["rank", "color"])
 
 
 class PokerHand(object):
-
     RESULT = ["Loss", "Tie", "Win"]
     RANKS = {"T": 10, "J": 11, "Q": 12, "K": 13, "A": 14} | {
         str(r): r for r in range(1, 10)

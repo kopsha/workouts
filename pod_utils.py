@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from cmath import rect, phase, pi
-from math import remainder, degrees
+from cmath import phase, pi, rect
 from collections import namedtuple
-import numpy as np
+from math import degrees, remainder
 
+import numpy as np
 
 Pod = namedtuple("Pod", ["x", "y", "vx", "vy", "angle", "cpid"])
 Coord = namedtuple("Coord", ["x", "y"])
@@ -134,7 +134,6 @@ def read_pods() -> dict:
 def pick_control_points(
     position: complex, target: complex, towards: complex
 ) -> tuple[complex, complex]:
-
     target_angle = phase(target - position)
     towards_angle = phase(towards - target)
     half_twist = remainder(target_angle - towards_angle, 2 * pi) / 2

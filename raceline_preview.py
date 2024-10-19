@@ -1,18 +1,14 @@
 from __future__ import annotations
 
-import pygame
-from random import randint
 from cmath import phase, pi
-from math import degrees, remainder
+from math import remainder
+from random import randint
+
+import pygame
 
 from picasso import PicassoEngine
-from pod_utils import (
-    build_optimal_segments,
-    build_bezier_path,
-    Coord,
-    BEZIER_DETAIL,
-)
-
+from pod_utils import (BEZIER_DETAIL, Coord, build_bezier_path,
+                       build_optimal_segments)
 
 BLACK = pygame.Color(0, 0, 0)
 GRAY = pygame.Color(96, 96, 96)
@@ -53,17 +49,17 @@ class RacelinePainter(PicassoEngine):
     def on_paint(self):
         self.canvas = pygame.Surface(self.canvas_size)
 
-        # self.mark_points()
-        self.mark_segments()
-        # if len(self.curve) > 1:
-        #     pygame.draw.lines(
-        #         self.canvas, GRAY, closed=False, points=self.curve, width=13
-        #     )
-        #     pygame.draw.line(
-        #         self.canvas, GRAY, self.last_position, self.position, width=10
-        #     )
-        #     pygame.draw.circle(self.canvas, GRAY, self.last_position, radius=72)
-        #     pygame.draw.circle(self.canvas, YELLOW, self.position, radius=100)
+        self.mark_points()
+        # self.mark_segments()
+        if len(self.curve) > 1:
+            pygame.draw.lines(
+                self.canvas, GRAY, closed=False, points=self.curve, width=13
+            )
+            pygame.draw.line(
+                self.canvas, GRAY, self.last_position, self.position, width=10
+            )
+            pygame.draw.circle(self.canvas, GRAY, self.last_position, radius=72)
+            pygame.draw.circle(self.canvas, YELLOW, self.position, radius=100)
 
         if len(self.live_curve) > 1:
             pygame.draw.lines(
@@ -89,10 +85,10 @@ class RacelinePainter(PicassoEngine):
         for segment in self.segments:
             pygame.draw.lines(self.canvas, GRAY, False, segment, width=13)
             a, b, c, d = segment
-            # pygame.draw.circle(self.canvas, GREEN, a, radius=55)
+            pygame.draw.circle(self.canvas, GREEN, a, radius=55)
             pygame.draw.circle(self.canvas, WHITE, b, radius=34)
             pygame.draw.circle(self.canvas, WHITE, c, radius=34)
-            # pygame.draw.circle(self.canvas, GREEN, d, radius=55)
+            pygame.draw.circle(self.canvas, GREEN, d, radius=55)
 
     def on_click(self, event):
         pass
@@ -171,7 +167,7 @@ class RacelinePainter(PicassoEngine):
 
 
 def main():
-    from pod_utils import SAMPLE6 as SAMPLE
+    from pod_utils import SAMPLE2 as SAMPLE
 
     with RacelinePainter(layout=SAMPLE["checkpoints"]) as engine:
         engine.post_init()

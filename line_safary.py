@@ -115,7 +115,6 @@ def has_valid_line(grid):
 
 
 def test_line_safari():
-
     grid = ["X-----|----X"]
     expected = False
     show(grid, expected)
