@@ -1,5 +1,6 @@
 import sys
 from collections import namedtuple
+from enum import IntEnum
 from functools import partial
 from heapq import heappop, heappush
 from math import inf
@@ -11,6 +12,12 @@ ROWS = rows + 2
 COLS = cols + 2
 CLEAR = {".", "C", "T", "o"}
 WALLS = {"#", "?"}
+DIRECTION = {
+    (-1, 0): "UP",
+    (1, 0): "DOWN",
+    (0, -1): "LEFT",
+    (0, 1): "RIGHT",
+}
 
 
 def sign(x):
@@ -77,7 +84,7 @@ class Node:
 
 def parse(maze, pos):
     nodes = list()
-    above_nodes: list[Optional[Node]] = [None] * len(maze)
+    above_nodes: list[Optional[Node]] = [None] * COLS
     foggy = set()
     for i, row in enumerate(maze):
         if i in {0, len(maze) - 1}:
@@ -104,22 +111,26 @@ def parse(maze, pos):
 
                 # horizontal coridor
                 if (
-                    this != pos
+                    this.pos != pos
                     and above in WALLS
                     and below in WALLS
                     and left in CLEAR
                     and right in CLEAR
                 ):
-                    print("horizontal coridor", this.pos, file=sys.stderr)
+                    # print("horizontal coridor", this.pos, file=sys.stderr)
+                    pass
                 elif (
-                    this != pos
+                    this.pos != pos
                     and left in WALLS
                     and right in WALLS
                     and above in CLEAR
                     and below in CLEAR
                 ):
-                    print("vertical coridor", this.pos, file=sys.stderr)
+                    # print("vertical coridor", this.pos, file=sys.stderr)
+                    pass
                 else:
+                    # if this.pos == pos:
+                    #     print("create node on current position", pos, file=sys.stderr)
                     nodes.append(this)
                     if left_node:
                         left_node.link(this)
@@ -158,6 +169,8 @@ def dijkstra(graph, start, dest):
     pos = start
     while q:
         _, pos = heappop(q)
+        if pos == dest:
+            break
         dist = distance[pos]
         for edge in graph.adjacency[pos]:
             alt = dist + edge.weight
@@ -201,17 +214,15 @@ def neighbors(maze, pos) -> list[tuple[int, int]]:
     ]
 
 
-DIRECTION = {
-    (-1, 0): "UP",
-    (1, 0): "DOWN",
-    (0, -1): "LEFT",
-    (0, 1): "RIGHT",
-}
+class State(IntEnum):
+    EXPAND = 0
+    TO_CC = 1
+    TO_HOME = 2
 
 
-target = None
 cc = None
-start = None
+home = None
+status = State.EXPAND
 
 while True:
     row, col = (int(i) for i in input().split())
@@ -225,9 +236,9 @@ while True:
             continue
         line = input()
         if (tcol := line.find("T")) >= 0:
-            start = i, tcol
+            home = i, tcol + 1
         if (tcol := line.find("C")) >= 0:
-            cc = i, tcol
+            cc = i, tcol + 1
         if i == pos[0]:
             line = replace_index(line, col, "o")
         maze.append("#" + line + "#")
@@ -235,31 +246,38 @@ while True:
     print(*maze, sep="\n", file=sys.stderr)
 
     nodes, foggy = parse(maze, pos)
+
+    # looking for closest foggy node
     _dist = partial(square_dist, pos)
     foggy.sort(key=_dist)
     foggy_dist = [(square_dist(pos, fi), fi) for fi in foggy]
     print("foggy", foggy, file=sys.stderr)
-    print("nodes", nodes, file=sys.stderr)
+    # print("nodes", nodes, file=sys.stderr)
 
     graph = UnidirectedWeightedGraph(nodes)
     # print(graph.adjacency, file=sys.stderr)
 
-    if target is None:
-        if foggy:
-            goal = next(iter(foggy))
-        else:
-            target = cc
-            goal = target
-    elif pos == cc:
-        target = start
-        goal = target
+    if status == State.EXPAND:
+        if not foggy:
+            status = State.TO_CC
+        if pos == cc:
+            status = State.TO_HOME
+    elif status == State.TO_CC:
+        if pos == cc:
+            status = State.TO_HOME
+
+    if status == State.EXPAND:
+        goal = next(iter(foggy))
+    elif status == State.TO_CC:
+        goal = cc
     else:
-        goal = target
+        goal = home
 
-    something = find_path(pos, goal, nodes, graph)
-    print("goal", goal, "path:", something, file=sys.stderr)
+    print("ss:", status, goal, file=sys.stderr)
+    trail = find_path(pos, goal, nodes, graph)
+    print("trail:", trail, file=sys.stderr)
 
-    towards = something[-2]  # last position should be the current one
-    diff = tuple(map(sign, map(sub, something[-2], something[-1])))
+    towards = trail[-2]  # last position should be the current one
+    diff = tuple(map(sign, map(sub, trail[-2], trail[-1])))
 
     print(DIRECTION[diff])
