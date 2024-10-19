@@ -122,7 +122,6 @@ class UnidirectedWeightedGraph:
 
 
 def dijkstra(graph, start, dest):
-    print("dij", start, dest, file=sys.stderr)
     size = len(graph.node_index)
     trail = [None] * size
     distance = [inf] * size
@@ -132,8 +131,6 @@ def dijkstra(graph, start, dest):
     pos = start
     while q:
         _, pos = heappop(q)
-        print("> picked", pos, file=sys.stderr)
-
         dist = distance[pos]
         for edge in graph.adjacency[pos]:
             alt = dist + edge.weight
@@ -142,7 +139,6 @@ def dijkstra(graph, start, dest):
                 trail[edge.vertex] = pos
                 heappush(q, (alt, edge.vertex))
 
-    print("stopped at", pos, " and trail is", trail, file=sys.stderr)
     path = [dest]
     while (pos := trail[pos]) is not None:
         path.append(pos)
@@ -151,20 +147,10 @@ def dijkstra(graph, start, dest):
 
 
 def find_path(pos, goal, nodes, graph):
-    start_nodes = [
-        (edi, ni)
-        for ni in nodes
-        if (edi := ni.edge_distance(pos)) is not inf and ni.pos != goal
-    ]
-    if not start_nodes:
-        raise RuntimeError(f"Position {pos} is not on the grid")
-    start_nodes.sort(key=itemgetter(0))
-    print("start from", start_nodes, file=sys.stderr)
-    start = graph.node_index[start_nodes[0][1].pos]
+    start = graph.node_index[pos]
     dest = graph.node_index[goal]
     ipath = dijkstra(graph, start, dest)
 
-    print("index path", ipath, file=sys.stderr)
     path = [nodes[i].pos for i in ipath]
     return path
 
@@ -239,6 +225,5 @@ while True:
 
     towards = something[-2]  # last position should be the current one
     diff = tuple(map(sign, map(sub, something[-2], something[-1])))
-    print(diff, file=sys.stderr)
 
     print(DIRECTION[diff])
