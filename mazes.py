@@ -1,12 +1,16 @@
 import sys
 from collections import namedtuple
+from functools import partial
 from heapq import heappop, heappush
 from math import inf
-from operator import itemgetter, sub
+from operator import sub
 from typing import Optional
 
 rows, cols, alarm_count = [int(i) for i in input().split()]
+ROWS = rows + 2
+COLS = cols + 2
 CLEAR = {".", "C", "T", "o"}
+WALLS = {"#", "?"}
 
 
 def sign(x):
@@ -16,6 +20,12 @@ def sign(x):
         return 1
     else:
         return 0
+
+
+def square_dist(left, right):
+    r1, c1 = left
+    r2, c2 = right
+    return (r2 - r1) ** 2 + (c2 - c1) ** 2
 
 
 def potential_neighbors(maze, pos) -> list[tuple[int, int]]:
@@ -29,7 +39,7 @@ def potential_neighbors(maze, pos) -> list[tuple[int, int]]:
     return [
         (ri, ci)
         for ri, ci in directions
-        if 0 <= ri < rows and 0 <= ci < cols and maze[ri][ci] == "?"
+        if 0 <= ri < ROWS and 0 <= ci < COLS and maze[ri][ci] == "?"
     ]
 
 
@@ -67,42 +77,59 @@ class Node:
 
 def parse(maze, pos):
     nodes = list()
-    top_nodes: list[Optional[Node]] = [None] * len(maze)
+    above_nodes: list[Optional[Node]] = [None] * len(maze)
     foggy = set()
     for i, row in enumerate(maze):
-        left = None
-        for j, col in enumerate(row):
-            if col in CLEAR:
+        if i in {0, len(maze) - 1}:
+            continue
+        # print("- working row", i, row, file=sys.stderr)
+        left_node = None
+        for j, cell in enumerate(row):
+            if j in {0, len(row) - 1}:
+                continue
+            # print("- position", (i, j), file=sys.stderr)
+
+            left = maze[i][j - 1]
+            right = maze[i][j + 1]
+
+            above = maze[i - 1][j]
+            below = maze[i + 1][j]
+
+            if cell in CLEAR:
                 this = Node(i, j)
+
+                ## Collect nodes near fog
                 if potential_neighbors(maze, this.pos):
                     foggy.add(this.pos)
 
-                look_right = maze[i][j + 1]
-                if left is None:
-                    nodes.append(this)
-                    left = this
-                elif look_right not in CLEAR:
-                    nodes.append(this)
-                    left.link(this)
-                    left = None
-                elif this.pos == pos:
-                    nodes.append(this)
-                    left.link(this)
-                    left = this
-
-                look_above = maze[i - 1][j]
-                look_below = maze[i + 1][j]
-                if look_above in CLEAR:
-                    above = top_nodes[i]
-                    assert above
-                    above.link(this)
-
-                if look_below in CLEAR:
-                    top_nodes[i] = this
+                # horizontal coridor
+                if (
+                    this != pos
+                    and above in WALLS
+                    and below in WALLS
+                    and left in CLEAR
+                    and right in CLEAR
+                ):
+                    print("horizontal coridor", this.pos, file=sys.stderr)
+                elif (
+                    this != pos
+                    and left in WALLS
+                    and right in WALLS
+                    and above in CLEAR
+                    and below in CLEAR
+                ):
+                    print("vertical coridor", this.pos, file=sys.stderr)
                 else:
-                    top_nodes[i] = None
+                    nodes.append(this)
+                    if left_node:
+                        left_node.link(this)
+                    left_node = None if right in WALLS else this
 
-    return nodes, foggy
+                    if above_nodes[j]:
+                        above_nodes[j].link(this)
+                    above_nodes[j] = None if below in WALLS else this
+
+    return nodes, list(foggy)
 
 
 Edge = namedtuple("Edge", ["vertex", "weight"])
@@ -170,7 +197,7 @@ def neighbors(maze, pos) -> list[tuple[int, int]]:
     return [
         (ri, ci)
         for ri, ci in directions
-        if 0 <= ri < rows and 0 <= ci < cols and maze[ri][ci] in CLEAR
+        if 0 <= ri < ROWS and 0 <= ci < COLS and maze[ri][ci] in CLEAR
     ]
 
 
@@ -188,20 +215,29 @@ start = None
 
 while True:
     row, col = (int(i) for i in input().split())
-    pos = (row, col)
+    pos = (row + 1, col + 1)
+
     maze = list()
-    for i in range(rows):
+
+    for i in range(ROWS):
+        if i in {0, ROWS - 1}:
+            maze.append("#" * COLS)
+            continue
         line = input()
-        maze.append(line)
         if (tcol := line.find("T")) >= 0:
             start = i, tcol
         if (tcol := line.find("C")) >= 0:
             cc = i, tcol
+        if i == pos[0]:
+            line = replace_index(line, col, "o")
+        maze.append("#" + line + "#")
 
-    maze[row] = replace_index(maze[row], col, "o")
     print(*maze, sep="\n", file=sys.stderr)
 
     nodes, foggy = parse(maze, pos)
+    _dist = partial(square_dist, pos)
+    foggy.sort(key=_dist)
+    foggy_dist = [(square_dist(pos, fi), fi) for fi in foggy]
     print("foggy", foggy, file=sys.stderr)
     print("nodes", nodes, file=sys.stderr)
 
