@@ -1,5 +1,5 @@
 from math import sqrt
-from functools import cache
+from functools import cache, reduce
 
 
 @cache
@@ -25,6 +25,35 @@ def factors(x: int):
         facts.append(x)
 
     return facts
+
+
+def gcd(x, y):
+    while x != y:
+        if x > y:
+            x -= y
+        else:
+            y -= x
+    return x
+
+
+def gcd_multi(xs: list):
+    return reduce(gcd, xs[1:], xs[0])
+
+
+def lcm(x, y):
+    m, n = x, y
+    while m != n:
+        if m < n:
+            m += x
+        else:
+            n += y
+    return m
+
+
+def lcm_multi(xs: list):
+    return reduce(lcm, xs[1:], xs[0])
+
+
 
 
 for i in range(2, 160):
